@@ -38,18 +38,18 @@ sudo systemctl stop nvidia-persistenced.service
 sudo /home/tallen93/cuda_12.2.0_535.54.03_linux.run --silent --driver -m=kernel-open
 sudo systemctl start nvidia-persistenced.service
 
-taskset -c 2 $perfexe record -F 100 --call-graph  dwarf -m256M  $exe 1000000000
+taskset -c 2 $perfexe record -F 100 --call-graph  dwarf -m256M  $exe 1000000000 0
 $perfexe script -f | ${flamegraph}/stackcollapse-perf.pl > out.folded
 ${flamegraph}/flamegraph.pl out.folded > ${prefix}_callgraph_small.svg
 
-taskset -c 2 $perfexe record -F 100 --call-graph  dwarf -m256M  $exe 2500000000
+taskset -c 2 $perfexe record -F 100 --call-graph  dwarf -m256M  $exe 2500000000 0
 $perfexe script -f | ${flamegraph}/stackcollapse-perf.pl > out.folded
 ${flamegraph}/flamegraph.pl out.folded > ${prefix}_callgraph_medium.svg
 
-taskset -c 2 $perfexe record -F 100 --call-graph  dwarf -m256M  $exe 4000000000 
+taskset -c 2 $perfexe record -F 100 --call-graph  dwarf -m256M  $exe 4000000000 0
 $perfexe script -f | ${flamegraph}/stackcollapse-perf.pl > out.folded
 ${flamegraph}/flamegraph.pl out.folded > ${prefix}_callgraph_oversub.svg
 
-taskset -c 2 $perfexe record -F 100 --call-graph  dwarf -m256M  $exe 6000000000 
+taskset -c 2 $perfexe record -F 100 --call-graph  dwarf -m256M  $exe 6000000000 0
 $perfexe script -f | ${flamegraph}/stackcollapse-perf.pl > out.folded
 ${flamegraph}/flamegraph.pl out.folded > ${prefix}_callgraph_oversub_dub.svg
