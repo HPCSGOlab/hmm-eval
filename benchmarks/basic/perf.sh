@@ -4,7 +4,7 @@ exe="./basic"
 N=(1000000000 2000000000 3000000000 4000000000 5000000000 6000000000)
 perfdir=perf/
 mkdir -p ${perfdir}
-driver="NVIDIA-Linux-x86_64-535.104.05"
+driver="NVIDIA-Linux-x86_64-535.104.05.run"
 path="/home/tallen93/"
 
 

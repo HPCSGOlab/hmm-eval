@@ -5,12 +5,11 @@
 #include <sys/mman.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <time.h>
 #include <vector>
 #include <algorithm>
 #include <getopt.h>
 #include <string>
-
+#include <chrono>
 
 void create_random_indices(std::vector<size_t>& indices, size_t array_size) {
     for (size_t i = 0; i < array_size; ++i) {
@@ -36,28 +35,24 @@ double benchmark_read(const char *filename, size_t array_size, std::vector<size_
     size_t bytes_read = 0;
     char *buffer_ptr = reinterpret_cast<char*>(buffer);
 
-    clock_t start = clock();
+    auto start = std::chrono::steady_clock::now();
 
-    // Read entire file into buffer
     while (bytes_read < total_bytes) {
         ssize_t result = read(fd, buffer_ptr + bytes_read, total_bytes - bytes_read);
         if (result == -1) {
             perror("File read error");
             exit(1);
         } else if (result == 0) {
-            // EOF reached before expected
             break;
         }
         bytes_read += result;
     }
 
-    // Modify the buffer (increment each element)
     for (size_t i = 0; i < array_size; ++i) {
         buffer[i]++;
     }
 
-    // Write the modified buffer back to the file
-    lseek(fd, 0, SEEK_SET); // Reset file pointer to the beginning of the file
+    lseek(fd, 0, SEEK_SET);
     size_t bytes_written = 0;
     while (bytes_written < total_bytes) {
         ssize_t written = write(fd, buffer_ptr + bytes_written, total_bytes - bytes_written);
@@ -68,13 +63,13 @@ double benchmark_read(const char *filename, size_t array_size, std::vector<size_
         bytes_written += written;
     }
 
-    clock_t end = clock();
+    auto end = std::chrono::steady_clock::now();
+    std::chrono::duration<double> elapsed_seconds = end - start;
+
     close(fd);
     free(buffer);
-    return static_cast<double>(end - start) / CLOCKS_PER_SEC;
+    return elapsed_seconds.count();
 }
-
-
 
 double benchmark_mmap(const char *filename, size_t array_size, std::vector<size_t>& indices) {
     int fd = open(filename, O_RDWR);
@@ -82,19 +77,25 @@ double benchmark_mmap(const char *filename, size_t array_size, std::vector<size_
         perror("File open error");
         exit(1);
     }
+
     int *map = (int*)mmap(NULL, array_size * sizeof(int), PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
     if (map == MAP_FAILED) {
         perror("mmap error");
         exit(1);
     }
-    clock_t start = clock();
+
+    auto start = std::chrono::steady_clock::now();
+
     for (size_t i = 0; i < array_size; ++i) {
         map[indices[i]]++;
     }
-    clock_t end = clock();
+
+    auto end = std::chrono::steady_clock::now();
+    std::chrono::duration<double> elapsed_seconds = end - start;
+
     munmap(map, array_size * sizeof(int));
     close(fd);
-    return (double)(end - start) / CLOCKS_PER_SEC;
+    return elapsed_seconds.count();
 }
 
 int main(int argc, char *argv[]) {
@@ -133,7 +134,6 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    // Generate filenames with the file size in MB
     std::string filename_read = "inputs/filename_read_" + std::to_string(file_size_mb);
     std::string filename_mmap = "inputs/filename_mmap_" + std::to_string(file_size_mb);
 
