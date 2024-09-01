@@ -399,9 +399,10 @@ long MatrixMultiply(//int argc, char **argv,
 
     // test relative error by the formula
     //     |<x, y>_cpu - <x,y>_gpu|/<|x|, |y|>  < eps
-    double eps = 1.e-6;  // machine zero
 
 /*
+    double eps = 1.e-6;  // machine zero
+
     for (size_t i = 0; i < static_cast<size_t>(dimsC.x * dimsC.y); i++) {
         double abs_err = fabs(h_C[i] - (dimsA.x * valB));
         double dot_length = dimsA.x;
@@ -414,9 +415,8 @@ long MatrixMultiply(//int argc, char **argv,
             correct = false;
         }
     }
-*/
-
     printf("%s\n", correct ? "Result = PASS" : "Result = FAIL");
+*/
 /*
 		printf("Matrix A:");
             for(int i = 0; i < size_A; i++){
