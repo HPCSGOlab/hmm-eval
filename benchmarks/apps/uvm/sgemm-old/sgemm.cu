@@ -164,10 +164,10 @@ long MatrixMultiply(//int argc, char **argv,
                    size_t block_size, const dim3 &dimsA,
                    const dim3 &dimsB) {
     // Allocate host memory for matrices A and B
-    size_t size_A = dimsA.x * dimsA.y;
+    size_t size_A = (size_t)dimsA.x * dimsA.y;
     size_t mem_size_A = sizeof(float) * size_A;
     float *h_A;/* = reinterpret_cast<float *>(malloc(mem_size_A))*/;
-    size_t size_B = dimsB.x * dimsB.y;
+    size_t size_B = (size_t)dimsB.x * dimsB.y;
     size_t mem_size_B = sizeof(float) * size_B;
     float *h_B;/* = reinterpret_cast<float *>(malloc(mem_size_B))*/;
 
@@ -183,8 +183,8 @@ long MatrixMultiply(//int argc, char **argv,
 
     // Allocate host matrix C
     dim3 dimsC(dimsB.x, dimsA.y, 1);
-    size_t size_C = dimsC.x * dimsC.y;
-    size_t mem_size_C = dimsC.x * dimsC.y * sizeof(float);
+    size_t size_C = (size_t)dimsC.x * dimsC.y;
+    size_t mem_size_C = (size_t)dimsC.x * dimsC.y * sizeof(float);
     float *h_C;/* = reinterpret_cast<float *>(malloc(mem_size_C));*/
 
 		checkCudaErrors(cudaMallocManaged(&h_C, mem_size_C));
@@ -389,7 +389,9 @@ long MatrixMultiply(//int argc, char **argv,
         flopsPerMatrixMul,
         threads.x * threads.y);
     
-    printf("perf,%f\n", gigaFlops);
+    // N, time, gigaflops
+    // ASSUMES SQUARE MATRIX OR N is WRONG
+    fprintf(stderr, "%d,%lf,%lf\n", dimsA.x, msecPerMatrixMul/1e3, gigaFlops);
 
     // Copy result from device to host
     //checkCudaErrors(cudaMemcpy(h_C, d_C, mem_size_C, cudaMemcpyDeviceToHost));

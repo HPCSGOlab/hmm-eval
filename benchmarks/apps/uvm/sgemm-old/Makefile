@@ -276,7 +276,7 @@ endif
 # Target rules
 all: build
 
-build: matrixMul2
+build: sgemm
 
 check.deps:
 ifeq ($(SAMPLE_ENABLED),0)
@@ -285,26 +285,17 @@ else
 	@echo "Sample is ready - all dependencies have been met"
 endif
 
-matrixMul2.o: matrixMul2.cu
+sgemm.o: sgemm.cu
 	$(EXEC) $(NVCC) $(INCLUDES) $(ALL_CCFLAGS) $(GENCODE_FLAGS) -o $@ -c $< -Xcompiler "-fopenmp"
 
 
 
 
-matrixMul2: matrixMul2.o
+sgemm: sgemm.o
 	$(EXEC) $(NVCC) $(ALL_LDFLAGS) $(GENCODE_FLAGS) -o $@ $+ $(LIBRARIES) -lcublas -Xcompiler "-fopenmp"
-	$(EXEC) mkdir -p ./bin/$(TARGET_ARCH)/$(TARGET_OS)/$(BUILD_TYPE)
-	$(EXEC) cp $@ ./bin/$(TARGET_ARCH)/$(TARGET_OS)/$(BUILD_TYPE)
 
-
-
-run: build
-	$(EXEC) ./matrixMul
 
 clean:
-	rm -f matrixMul matrixMul.o matrixMul2 matrixMul2.o
-	rm -rf ./bin/$(TARGET_ARCH)/$(TARGET_OS)/$(BUILD_TYPE)/matrixMul
-	rm -rf ./bin/$(TARGET_ARCH)/$(TARGET_OS)/$(BUILD_TYPE)/matrixMul2
-	rm -rf ./bin
+	rm -f sgemm sgemm.o
 
 clobber: clean
