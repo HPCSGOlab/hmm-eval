@@ -245,6 +245,9 @@ void run()
     2 * sizeof(T) * ARRAY_SIZE
   };
 
+  double totalAverageTime = 0;
+  double totalAverageGBytes = 0;
+
   for (int i = 0; i < 5; i++)
   {
     // Get min/max; ignore the first result
@@ -252,7 +255,11 @@ void run()
 
     // Calculate average; ignore the first result
     double average = std::accumulate(timings[i].begin()+1, timings[i].end(), 0.0) / (double)(num_times - 1);
+    totalAverageTime += average;
 
+    // GETTING THEIR MBYTES AVERAGE as GBYTES
+    totalAverageGBytes += 1.0E-9 * sizes[i] / (*minmax.first);
+    
     // Display results
     if (output_as_csv)
     {
@@ -278,6 +285,11 @@ void run()
         << std::endl;
     }
   }
+
+  //JUST USING THEIR (MBYTES / SEC) INSTEAD OF GFLOPS
+
+  std::cout << "GPU," << ARRAY_SIZE << "," << totalAverageTime << "," << 
+	  std::setprecision(3) << totalAverageGBytes << std::endl;
 
   delete stream;
 
