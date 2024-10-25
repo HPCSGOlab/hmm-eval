@@ -40,8 +40,10 @@ CUDAStream<T>::CUDAStream(const unsigned int ARRAY_SIZE, const int device_index)
   check_error();
 
   // Print out device information
+  /* COMMENTING FOR BASH
   std::cout << "Using CUDA device " << getDeviceName(device_index) << std::endl;
   std::cout << "Driver: " << getDeviceDriver(device_index) << std::endl;
+  */
 
   array_size = ARRAY_SIZE;
 

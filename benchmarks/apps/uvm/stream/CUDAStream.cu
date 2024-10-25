@@ -40,8 +40,10 @@ CUDAStream<T>::CUDAStream(const unsigned int ARRAY_SIZE, const int device_index)
   check_error();
 
   // Print out device information
+  /* COMMENTING FOR BASH
   std::cout << "Using CUDA device " << getDeviceName(device_index) << std::endl;
   std::cout << "Driver: " << getDeviceDriver(device_index) << std::endl;
+  */
 
   array_size = ARRAY_SIZE;
 
@@ -73,7 +75,7 @@ cudaMallocManaged(&d_a, ARRAY_SIZE*sizeof(T));
   cudaMallocManaged(&d_sum, DOT_NUM_BLOCKS*sizeof(T));
   check_error();
 
-std::cout << "alloced," << ARRAY_SIZE*sizeof(T) * 3 << std::endl; 
+//std::cout << "alloced," << ARRAY_SIZE*sizeof(T) * 3 << std::endl; 
 //cudaMemAdvise(d_a, array_size, cudaMemAdviseSetPreferredLocation, 0);
 //cudaMemAdvise(d_a, array_size, cudaMemAdviseSetAccessedBy, 0);
 //cudaMemAdvise(d_a, array_size, cudaMemAdviseSetReadMostly, 0);

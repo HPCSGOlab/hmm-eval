@@ -66,10 +66,12 @@ int main(int argc, char *argv[])
 
   if (!output_as_csv)
   {
+	  /* COMMENTING FOR BASH
     std::cout
       << "BabelStream" << std::endl
       << "Version: " << VERSION_STRING << std::endl
       << "Implementation: " << IMPLEMENTATION_STRING << std::endl;
+      */
   }
 
   // TODO: Fix Kokkos to allow multiple template specializations
@@ -95,6 +97,7 @@ void run()
 {
   std::streamsize ss = std::cout.precision();
 
+  /* COMMENTING FOR BASH
   if (!output_as_csv)
   {
     std::cout << "Running kernels " << num_times << " times" << std::endl;
@@ -113,6 +116,7 @@ void run()
     std::cout.precision(ss);
 
   }
+  */
 
   // Create host vectors
   std::vector<T> a(ARRAY_SIZE);
@@ -209,6 +213,7 @@ void run()
   stream->read_arrays(a, b, c);
   check_solution<T>(num_times, a, b, c, sum);
 
+  /* COMMENTING FOR BASH
   // Display timing results
   if (output_as_csv)
   {
@@ -233,6 +238,7 @@ void run()
       << std::endl
       << std::fixed;
   }
+  */
 
 
 
@@ -260,6 +266,7 @@ void run()
     // GETTING THEIR MBYTES AVERAGE as GBYTES
     totalAverageGBytes += 1.0E-9 * sizes[i] / (*minmax.first);
 
+    /* COMMENTING FOR BASH
     // Display results
     if (output_as_csv)
     {
@@ -284,6 +291,7 @@ void run()
         << std::left << std::setw(12) << std::setprecision(5) << average
         << std::endl;
     }
+    */
   }
 
   //JUST USING THEIR (MBYTES / SEC) INSTEAD OF GFLOPS
