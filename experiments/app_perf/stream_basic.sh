@@ -48,8 +48,8 @@ function run_benchmark {
 	    make -C $BENCHMARK_DIR clean
 
 	    # compile and run stream with new array size
-	    make -C $BENCHMARK_DIR STREAM_ARRAY_SIZE=$N ITERS=$ITERS
-	    $BENCHMARK_EXE -n $ITERS >> $OUT_PATH
+	    make -C $BENCHMARK_DIR 
+	    $BENCHMARK_EXE -n $ITERS -s $N >> $OUT_PATH
 	    # $BENCHMARK_EXE -n 1 -c 2 >> $OUT_PATH
 	done
 }
