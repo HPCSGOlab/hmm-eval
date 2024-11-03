@@ -42,14 +42,15 @@ function setup_environment {
 }
 
 function run_benchmark {
-	# MEMMODE=0,1
+	local ALL_CPUS=`lscpu | grep "On-line CPU" | awk '{print $4}'`
+
 	# changing array sizes for iterations
 	for N in "${PSIZES[@]}"; do
 	    make -C $BENCHMARK_DIR clean
 
 	    # compile and run stream with new array size
 	    make -C $BENCHMARK_DIR 
-	    $BENCHMARK_EXE -n $ITERS -s $N >> $OUT_PATH
+	    numactl --physcpubind=$ALL_CPUS $BENCHMARK_EXE -n $ITERS -s $N >> $OUT_PATH
 	    # $BENCHMARK_EXE -n 1 -c 2 >> $OUT_PATH
 	done
 }
