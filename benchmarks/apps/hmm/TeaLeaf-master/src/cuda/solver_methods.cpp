@@ -75,9 +75,14 @@ void sum_reduce_buffer(double *buffer, double *result, int len) {
     sum_reduce<<<num_blocks, BLOCK_SIZE>>>(len, buffer);
     len = num_blocks;
   }
+  //printf("%p %p %d\n", (void*)&result, (void*)&buffer, sizeof(double));
+  //printf("%f %f\n", *result, *buffer);
   //cudaMemcpy(result, buffer, sizeof(double), CLOVER_MEMCPY_KIND_D2H);
+  cudaDeviceSynchronize();
   memcpy(result, buffer, sizeof(double));
-  check_errors(__LINE__, __FILE__);
+  //printf("%p %p %d\n", (void*)&result, (void*)&buffer, sizeof(double));
+  //printf("%f %f\n", *result, *buffer);
+  //check_errors(__LINE__, __FILE__);
 }
 
 __global__ void copy_u(const int x_inner, const int y_inner, const int halo_depth, const double *src, double *dest) {

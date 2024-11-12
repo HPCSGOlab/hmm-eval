@@ -10,20 +10,31 @@
 
 // Allocates, and zeroes and individual buffer
 void allocate_device_buffer(double **a, int x, int y) {
-#ifdef CLOVER_MANAGED_ALLOC
+//#ifdef CLOVER_MANAGED_ALLOC
   //cudaMallocManaged(a, x * y * sizeof(double));
-#else
+//#else
   //cudaMalloc(a, x * y * sizeof(double));
-#endif
+//#endif
 
   //HMM
-  *a = (double*) malloc(x * y * sizeof(double));
-  
+ 
   //check_errors(__LINE__, __FILE__);
   //cudaMemset(*a, 0, x * y * sizeof(double));
-  memset(*a, 0, x * y * sizeof(double));
   //check_errors(__LINE__, __FILE__);
-}
+ *a = (double *)malloc(sizeof(double) * x * y);
+
+  if (*a == nullptr) {
+    die(__LINE__, __FILE__, "Error allocating buffer %s\n");
+  }
+
+#pragma omp parallel for
+  for (int jj = 0; jj < y; ++jj) {
+    for (int kk = 0; kk < x; ++kk) {
+      const int index = kk + jj * x;
+      (*a)[index] = 0.0;
+    }
+  }
+ }
 
 void allocate_host_buffer(double **a, int x, int y) {
   *a = (double *)malloc(sizeof(double) * x * y);
