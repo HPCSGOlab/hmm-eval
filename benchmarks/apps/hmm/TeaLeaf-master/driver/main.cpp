@@ -1,4 +1,5 @@
 #include <optional>
+#include <chrono>
 
 #include "application.h"
 #include "chunk.h"
@@ -164,12 +165,20 @@ int main(int argc, char **argv) {
   print_and_log(settings, "# ---- \n");
   print_and_log(settings, "Output: |+1\n");
 
+  std::chrono::high_resolution_clock::time_point start = std::chrono::high_resolution_clock::now();
+
   // Perform the solve using default or overloaded diffuse
 #ifndef DIFFUSE_OVERLOAD
   bool valid = diffuse(chunks, settings);
 #else
   bool valid = diffuse_overload(chunks, settings);
 #endif
+
+  std::chrono::high_resolution_clock::time_point end = std::chrono::high_resolution_clock::now();
+
+  std::chrono::duration<float> elapsed_time = std::chrono::duration_cast<std::chrono::duration<float>>(end - start);
+
+  printf("CPU,%ld,%f\n", (chunk_comms_total_x + chunk_comms_total_y)* 8 / 1000, elapsed_time.count());
 
   // Print the kernel-level profiling results
   if (settings.rank == MASTER) {

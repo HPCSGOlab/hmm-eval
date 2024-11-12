@@ -8,7 +8,7 @@ void initialise_log(Settings &settings) {
     return;
   }
 
-  std::printf("# Opening %s as log file.\n", settings.tea_out_filename);
+  //std::printf("# Opening %s as log file.\n", settings.tea_out_filename);
   std::fflush(stdout);
   settings.tea_out_fp = std::fopen(settings.tea_out_filename, "w");
 
@@ -26,7 +26,7 @@ void print_and_log(Settings &settings, const char *format, ...) {
 
   va_list arglist;
   va_start(arglist, format);
-  std::vprintf(format, arglist);
+  //std::vprintf(format, arglist);
   va_end(arglist);
   std::fflush(stdout);
 
