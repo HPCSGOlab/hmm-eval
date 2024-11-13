@@ -25,13 +25,12 @@ def plot_data(file_paths):
 
     # Plot each memory management mode
     for idx, mode in enumerate(data_for_all):
-        plt.plot(mode['Size'], mode['GBytes/s'], marker=markers[idx], label=file_paths[idx].split('/')[-3])
+        plt.plot(mode['KB'], mode['s'], marker=markers[idx], label=file_paths[idx].split('/')[-3])
 
     # Set plot title, labels, and legend
     plt.title(f'{benchmark_name} Benchmark Performance')
     plt.xlabel('Problem Size')
-    plt.ylabel('GBytes/s')
-    plt.ylim(0)
+    plt.ylabel('sec')
     plt.legend()
 
 
@@ -45,7 +44,7 @@ def main():
     args = parse_arguments()
 
     # Set your directory path here
-    directory_path = args.dir # e.g., "../data/cci-hopper/app_perf/"
+    directory_path = args.dir # e.g., "../../data/cci-hopper/app_perf/"
 
     global benchmark_name
     benchmark_name  = args.benchmark # e.g., "stream'

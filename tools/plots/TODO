@@ -1,0 +1,7 @@
+So it looks like the *-perf.py files could easily get combined into one 'do it all' file
+
+There is only one line diff between each
+
+args are set up in a good way
+
+I just am not going to fix that right now
