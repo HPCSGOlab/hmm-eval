@@ -209,7 +209,6 @@ int mm_read_mtx_crd_size(FILE *f, int *M, int *N, int *nz )
     do
     { 
         num_items_read = fscanf(f, "%d %d %d", M, N, nz); 
-        printf("%d %d %d", M, N, nz); 
         if (num_items_read == EOF) return MM_PREMATURE_EOF;
     }
     while (num_items_read != 3);

@@ -7,7 +7,8 @@ spmv: $(objects)
 mmio.o: src/mmio.c
 	$(CC) -x cu -arch=sm_90 -Iinclude -c src/mmio.c
 
-main.o: src/spmv_csr_scalar.cu src/spmv_csr_vector.cu src/spmv_csr_adaptive.cu src/spmv_pcsr.cu src/spmv_light.cu src/spmv_cpu.cu src/utils.cu src/main.cu
+#src/spmv_csr_scalar.cu src/spmv_csr_vector.cu src/spmv_csr_adaptive.cu src/spmv_pcsr.cu
+main.o:  src/spmv_light.cu src/spmv_cpu.cu src/utils.cu src/main.cu
 	$(CC) -arch=sm_90 -Iinclude -I. -dc src/main.cu
 
 clean:
