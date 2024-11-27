@@ -5,8 +5,8 @@ ENABLE_BASE=true
 ENABLE_UVM=true
 ENABLE_HMM=true
 
-#               196KB                      382KB                      768KB                 1536KB
-benchmarks=(Benchmarks/tea_bm_4.in Benchmarks/tea_bm_5e_2_2.in Benchmarks/tea_bm_5.in Benchmarks/tea_bm_6.in)
+#               196KB                      382KB                   768KB            1536KB           3072KB
+benchmarks=(Benchmarks/smallest.in Benchmarks/smaller.in Benchmarks/small.in Benchmarks/med.in Benchmarks/big.in)
 ITERS=100
 
 module load cuda
