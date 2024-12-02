@@ -94,23 +94,23 @@ void spmv_light(MatrixInfo<T> * mat,T *vector,T *out)
     	cudaEvent_t start, stop;
     	cudaEventCreate(&start);
     	cudaEventCreate(&stop);
-
+	
 	//capture the data movement
     	cudaEventRecord(start);
 
 	// Allocate memory on device
     	//cudaMalloc(&d_vector,mat->N*sizeof(T));
-    	cudaMallocManaged(&d_vector,mat->N*sizeof(T));
+    	d_vector = (double*) malloc(mat->N*sizeof(T));
     	//cudaMalloc(&d_val,mat->nz*sizeof(T));
-    	cudaMallocManaged(&d_val,mat->nz*sizeof(T));
+    	d_val = (double*) malloc(mat->nz*sizeof(T));
     	//cudaMalloc(&d_out,mat->M*sizeof(T));
-    	cudaMallocManaged(&d_out,mat->M*sizeof(T));
+    	d_out = (double*) malloc(mat->M*sizeof(T));
     	//cudaMalloc(&d_cols,mat->nz*sizeof(int));
-    	cudaMallocManaged(&d_cols,mat->nz*sizeof(int));
+    	d_cols = (int*) malloc(mat->nz*sizeof(int));
     	//cudaMalloc(&d_ptr,(mat->M+1)*sizeof(int));
-    	cudaMallocManaged(&d_ptr,(mat->M+1)*sizeof(int));
+    	d_ptr = (int*) malloc((mat->M+1)*sizeof(int));
     	//cudaMalloc(&cudaRowCounter, sizeof(int));
-    	cudaMallocManaged(&cudaRowCounter, sizeof(int));
+    	cudaRowCounter = (int*) malloc(sizeof(int)); 
 
 	// Copy from host memory to device memory
     	//cudaMemcpy(d_vector,vector,mat->N*sizeof(T),cudaMemcpyHostToDevice);
@@ -121,33 +121,39 @@ void spmv_light(MatrixInfo<T> * mat,T *vector,T *out)
     	memcpy(d_cols,mat->cIndex,mat->nz*sizeof(int));
     	//cudaMemcpy(d_ptr,mat->rIndex,(mat->M+1)*sizeof(int),cudaMemcpyHostToDevice);
     	memcpy(d_ptr,mat->rIndex,(mat->M+1)*sizeof(int));
-    	cudaMemset(d_out, 0, mat->M*sizeof(T));
-    	cudaMemset(cudaRowCounter, 0, sizeof(int));
+    	//cudaMemset(d_out, 0, mat->M*sizeof(T));
+    	memset(d_out, 0, mat->M*sizeof(T));
+    	//cudaMemset(cudaRowCounter, 0, sizeof(int));
+	memset(cudaRowCounter, 0, sizeof(int));
 
 	// Choose the vector size depending on the NNZ/Row, run the kernel and time it
     	if (meanElementsPerRow <= 2) {
 		for (int i = 0; i < ITER; i++) {
 			spmv_light_kernel<T, 2, MAX_NUM_THREADS_PER_BLOCK / 2><<<ceil(mat->M/(float)BlockDim), BlockDim>>>(
-				cudaRowCounter, d_ptr, d_cols,d_val,d_vector,d_out,mat->M);
-			cudaMemset(cudaRowCounter, 0, sizeof(int));
+				cudaRowCounter, mat->rIndex, d_cols,d_val,d_vector,d_out,mat->M);
+			cudaDeviceSynchronize();
+			memset(cudaRowCounter, 0, sizeof(int));
 		}
 	} else if (meanElementsPerRow <= 4) {
 		for (int i = 0; i < ITER; i++) {
 			spmv_light_kernel<T, 4, MAX_NUM_THREADS_PER_BLOCK / 4><<<ceil(mat->M/(float)BlockDim), BlockDim>>>(
 				cudaRowCounter, d_ptr, d_cols,d_val, d_vector, d_out,mat->M);
-			cudaMemset(cudaRowCounter, 0, sizeof(int));
+			cudaDeviceSynchronize();
+			memset(cudaRowCounter, 0, sizeof(int));
 		}
 	} else if(meanElementsPerRow <= 64) {
 		for (int i = 0; i < ITER; i++) {
 			spmv_light_kernel<T, 8, MAX_NUM_THREADS_PER_BLOCK / 8><<<ceil(mat->M/(float)BlockDim), BlockDim>>>(
 				cudaRowCounter,d_ptr,d_cols,d_val, d_vector, d_out,mat->M);
-			cudaMemset(cudaRowCounter, 0, sizeof(int));
+			cudaDeviceSynchronize();
+			memset(cudaRowCounter, 0, sizeof(int));
 		}
 	} else {
 		for (int i = 0; i < ITER; i++){
 			spmv_light_kernel<T, 32, MAX_NUM_THREADS_PER_BLOCK / 32><<<ceil(mat->M/(float)BlockDim), BlockDim>>>(
 				cudaRowCounter, d_ptr, d_cols,d_val, d_vector, d_out,mat->M);
-			cudaMemset(cudaRowCounter, 0, sizeof(int));
+			cudaDeviceSynchronize();
+			memset(cudaRowCounter, 0, sizeof(int));
 		}
 	}
 
@@ -156,15 +162,14 @@ void spmv_light(MatrixInfo<T> * mat,T *vector,T *out)
     	cudaEventElapsedTime(&milliseconds, start, stop);
 
 	// Copy from device memory to host memory
-    	//cudaMemcpy(out, d_out, mat->M*sizeof(T), cudaMemcpyDeviceToHost);
     	memcpy(out, d_out, mat->M*sizeof(T));
     	
 	// Free device memory	
-	cudaFree(d_vector);
-    	cudaFree(d_val);
-    	cudaFree(d_cols);
-    	cudaFree(d_ptr);
-    	cudaFree(d_out);
+	free(d_vector);
+    	free(d_val);
+    	free(d_cols);
+    	free(d_ptr);
+    	free(d_out);
 	
 	// Calculate and print out GFLOPs and GB/s
 	double gbs = ((mat->N * sizeof(T)) + (mat->nz*sizeof(T)) + (mat->M*sizeof(int)) + (mat->nz*sizeof(int)) + (mat->M*sizeof(T))) / (milliseconds/ITER) / 1e6;
