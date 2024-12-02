@@ -94,23 +94,33 @@ void spmv_light(MatrixInfo<T> * mat,T *vector,T *out)
     	cudaEvent_t start, stop;
     	cudaEventCreate(&start);
     	cudaEventCreate(&stop);
-	
+
 	//capture the data movement
     	cudaEventRecord(start);
 
 	// Allocate memory on device
-    	cudaMalloc(&d_vector,mat->N*sizeof(T));
-    	cudaMalloc(&d_val,mat->nz*sizeof(T));
-    	cudaMalloc(&d_out,mat->M*sizeof(T));
-    	cudaMalloc(&d_cols,mat->nz*sizeof(int));
-    	cudaMalloc(&d_ptr,(mat->M+1)*sizeof(int));
-    	cudaMalloc(&cudaRowCounter, sizeof(int));
+    	//cudaMalloc(&d_vector,mat->N*sizeof(T));
+    	cudaMallocManaged(&d_vector,mat->N*sizeof(T));
+    	//cudaMalloc(&d_val,mat->nz*sizeof(T));
+    	cudaMallocManaged(&d_val,mat->nz*sizeof(T));
+    	//cudaMalloc(&d_out,mat->M*sizeof(T));
+    	cudaMallocManaged(&d_out,mat->M*sizeof(T));
+    	//cudaMalloc(&d_cols,mat->nz*sizeof(int));
+    	cudaMallocManaged(&d_cols,mat->nz*sizeof(int));
+    	//cudaMalloc(&d_ptr,(mat->M+1)*sizeof(int));
+    	cudaMallocManaged(&d_ptr,(mat->M+1)*sizeof(int));
+    	//cudaMalloc(&cudaRowCounter, sizeof(int));
+    	cudaMallocManaged(&cudaRowCounter, sizeof(int));
 
 	// Copy from host memory to device memory
-    	cudaMemcpy(d_vector,vector,mat->N*sizeof(T),cudaMemcpyHostToDevice);
-    	cudaMemcpy(d_val,mat->val,mat->nz*sizeof(T),cudaMemcpyHostToDevice);
-    	cudaMemcpy(d_cols,mat->cIndex,mat->nz*sizeof(int),cudaMemcpyHostToDevice);
-    	cudaMemcpy(d_ptr,mat->rIndex,(mat->M+1)*sizeof(int),cudaMemcpyHostToDevice);
+    	//cudaMemcpy(d_vector,vector,mat->N*sizeof(T),cudaMemcpyHostToDevice);
+    	memcpy(d_vector,vector,mat->N*sizeof(T));
+    	//cudaMemcpy(d_val,mat->val,mat->nz*sizeof(T),cudaMemcpyHostToDevice);
+    	memcpy(d_val,mat->val,mat->nz*sizeof(T));
+    	//cudaMemcpy(d_cols,mat->cIndex,mat->nz*sizeof(int),cudaMemcpyHostToDevice);
+    	memcpy(d_cols,mat->cIndex,mat->nz*sizeof(int));
+    	//cudaMemcpy(d_ptr,mat->rIndex,(mat->M+1)*sizeof(int),cudaMemcpyHostToDevice);
+    	memcpy(d_ptr,mat->rIndex,(mat->M+1)*sizeof(int));
     	cudaMemset(d_out, 0, mat->M*sizeof(T));
     	cudaMemset(cudaRowCounter, 0, sizeof(int));
 
@@ -147,6 +157,7 @@ void spmv_light(MatrixInfo<T> * mat,T *vector,T *out)
 
 	// Copy from device memory to host memory
     	cudaMemcpy(out, d_out, mat->M*sizeof(T), cudaMemcpyDeviceToHost);
+    	memcpy(out, d_out, mat->M*sizeof(T));
     	
 	// Free device memory	
 	cudaFree(d_vector);
