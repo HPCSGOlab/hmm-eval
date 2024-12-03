@@ -155,8 +155,12 @@ int verify(int nz, int M, int *rIndex, int *cIndex, T *val, T *vec, T *res) {
 		correct[rIndex[i]] += val[i] * vec[cIndex[i]];
 	}
 
+	printf("HERE\n");
+
 	int o = 0;
 	for (int i = 0; i < M; i++) {
+		//printf("%f\n", round(correct[i]));
+		//printf("%f\n", round(res[i]));
 		if (round(correct[i]) == 0 && round(res[i]) == 0){
 			if (fabs(correct[i] - res[i]) > FLT_EPSILON) {
 				o++;
@@ -174,6 +178,7 @@ int verify(int nz, int M, int *rIndex, int *cIndex, T *val, T *vec, T *res) {
 		}
 
 	}
+	printf("Okay it looks like the verification only prints if there are logic errors\n");
 	return o;
 }
 

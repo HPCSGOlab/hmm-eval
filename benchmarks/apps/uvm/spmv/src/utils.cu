@@ -44,9 +44,12 @@ MatrixInfo<T> * read_file(const char * path){
         return NULL;
 
 	/* reseve memory for matrices */
-	rIndex = (int *)malloc(nz * sizeof(int));
-	cIndex = (int *)malloc(nz * sizeof(int));
-	val = (T *)malloc(nz * sizeof(T));
+	//rIndex = (int *)malloc(nz * sizeof(int));
+	cudaMallocManaged(&rIndex, nz * sizeof(int));
+	//cIndex = (int *)malloc(nz * sizeof(int));
+	cudaMallocManaged(&cIndex, nz * sizeof(int));
+	//val = (T *)malloc(nz * sizeof(T));
+	cudaMallocManaged(&val, nz * sizeof(T));
 
 	/* NOTE: when reading in floats, ANSI C requires the use of the "l"  */
 	/*   specifier as in "%lg", "%lf", "%le", otherwise errors will occur */
@@ -75,10 +78,10 @@ MatrixInfo<T> * read_file(const char * path){
 
 template <typename T>
 void freeMatrixInfo(MatrixInfo<T> * inf){
-    free(inf->rIndex);
-    free(inf->cIndex);
-    free(inf->val);
-    free(inf);
+    cudaFree(inf->rIndex);
+    cudaFree(inf->cIndex);
+    cudaFree(inf->val);
+    cudaFree(inf);
 }
 
 template <typename T>
@@ -179,7 +182,9 @@ int verify(int nz, int M, int *rIndex, int *cIndex, T *val, T *vec, T *res) {
 
 template <typename T>
 T* write_vector(int N) {
-	T *vec = (T *) malloc(N*sizeof(T));
+	//T *vec = (T *) malloc(N*sizeof(T));
+	T *vec;
+	cudaMallocManaged(&vec, N*sizeof(T));
 	for (int i = 0; i < N; i++){
                 vec[i] = 1.0;
         }

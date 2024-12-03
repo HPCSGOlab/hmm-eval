@@ -48,7 +48,7 @@ int main(int argc, char ** argv){
  
 	// Run kernels and print results
 	printf("\nSingle Precision Results\n\n");
-	/*
+/*
         SPout = (float *)malloc(SPnewMat->M*sizeof(float));
         spmv_csr_scalar<float>(SPnewMat, SPvec, SPout);
         verify<float>(SPmatrix->nz,SPmatrix->M,SPmatrix->rIndex,SPmatrix->cIndex,SPmatrix->val,SPvec,SPout);
@@ -69,8 +69,7 @@ int main(int argc, char ** argv){
         verify<float>(SPmatrix->nz,SPmatrix->M,SPmatrix->rIndex,SPmatrix->cIndex,SPmatrix->val,SPvec,SPout);
         free(SPout);
 */
-
-	/* SINGLE PERCISION
+	/* SINGLE PERCISION 
 	SPout = (float *)malloc(SPnewMat->M*sizeof(float));
         spmv_light(SPnewMat,SPvec,SPout);
         verify<float>(SPmatrix->nz,SPmatrix->M,SPmatrix->rIndex,SPmatrix->cIndex,SPmatrix->val,SPvec,SPout);
@@ -112,10 +111,11 @@ int main(int argc, char ** argv){
         free(DPout);
 	*/
 
-	DPout = (double *)malloc(SPnewMat->M*sizeof(double));
+	//DPout = (double *)malloc(SPnewMat->M*sizeof(double));
+	cudaMallocManaged(&DPout, SPnewMat->M*sizeof(double));
         spmv_light<double>(DPnewMat, DPvec, DPout);
         verify<double>(DPmatrix->nz,DPmatrix->M,DPmatrix->rIndex,DPmatrix->cIndex,DPmatrix->val,DPvec,DPout);
-        free(DPout);
+        cudaFree(DPout);
 
 	/*
 	DPout = (double *)malloc(SPnewMat->M*sizeof(double));
@@ -132,9 +132,9 @@ int main(int argc, char ** argv){
 	// Free up memory
         freeMatrixInfo<float>(SPmatrix);
 	freeMatrixInfo<float>(SPnewMat);
-	free(SPvec);
+	cudaFree(SPvec);
 
 	freeMatrixInfo<double>(DPmatrix);
         freeMatrixInfo<double>(DPnewMat);
-        free(DPvec);
+        cudaFree(DPvec);
 }

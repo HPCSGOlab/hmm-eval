@@ -84,8 +84,8 @@ __global__ void spmv_light_kernel(int* cudaRowCounter, int* d_ptr, int* d_cols,T
 template <typename T>
 void spmv_light(MatrixInfo<T> * mat,T *vector,T *out)
 {
-    	T *d_vector,*d_val, *d_out;
-    	int *d_cols, *d_ptr;
+    	//T *d_vector,*d_val, *d_out;
+    	//int *d_cols, *d_ptr;
     	float time_taken;
     	double gflop = 2 * (double) mat->nz / 1e9;
     	float milliseconds = 0;
@@ -100,53 +100,50 @@ void spmv_light(MatrixInfo<T> * mat,T *vector,T *out)
 
 	// Allocate memory on device
     	//cudaMalloc(&d_vector,mat->N*sizeof(T));
-    	cudaMallocManaged(&d_vector,mat->N*sizeof(T));
     	//cudaMalloc(&d_val,mat->nz*sizeof(T));
-    	cudaMallocManaged(&d_val,mat->nz*sizeof(T));
     	//cudaMalloc(&d_out,mat->M*sizeof(T));
-    	cudaMallocManaged(&d_out,mat->M*sizeof(T));
+    	//cudaMallocManaged(&d_out,mat->M*sizeof(T));
     	//cudaMalloc(&d_cols,mat->nz*sizeof(int));
-    	cudaMallocManaged(&d_cols,mat->nz*sizeof(int));
     	//cudaMalloc(&d_ptr,(mat->M+1)*sizeof(int));
-    	cudaMallocManaged(&d_ptr,(mat->M+1)*sizeof(int));
     	//cudaMalloc(&cudaRowCounter, sizeof(int));
     	cudaMallocManaged(&cudaRowCounter, sizeof(int));
 
 	// Copy from host memory to device memory
     	//cudaMemcpy(d_vector,vector,mat->N*sizeof(T),cudaMemcpyHostToDevice);
-    	memcpy(d_vector,vector,mat->N*sizeof(T));
     	//cudaMemcpy(d_val,mat->val,mat->nz*sizeof(T),cudaMemcpyHostToDevice);
-    	memcpy(d_val,mat->val,mat->nz*sizeof(T));
     	//cudaMemcpy(d_cols,mat->cIndex,mat->nz*sizeof(int),cudaMemcpyHostToDevice);
-    	memcpy(d_cols,mat->cIndex,mat->nz*sizeof(int));
     	//cudaMemcpy(d_ptr,mat->rIndex,(mat->M+1)*sizeof(int),cudaMemcpyHostToDevice);
-    	memcpy(d_ptr,mat->rIndex,(mat->M+1)*sizeof(int));
-    	cudaMemset(d_out, 0, mat->M*sizeof(T));
+    	//cudaMemset(d_out, 0, mat->M*sizeof(T));
+    	cudaMemset(out, 0, mat->M*sizeof(T));
     	cudaMemset(cudaRowCounter, 0, sizeof(int));
 
 	// Choose the vector size depending on the NNZ/Row, run the kernel and time it
     	if (meanElementsPerRow <= 2) {
 		for (int i = 0; i < ITER; i++) {
 			spmv_light_kernel<T, 2, MAX_NUM_THREADS_PER_BLOCK / 2><<<ceil(mat->M/(float)BlockDim), BlockDim>>>(
-				cudaRowCounter, d_ptr, d_cols,d_val,d_vector,d_out,mat->M);
+				//cudaRowCounter, d_ptr, d_cols,d_val,d_vector,d_out,mat->M);
+				cudaRowCounter, mat->rIndex, mat->cIndex, mat->val, vector, out, mat->M);
 			cudaMemset(cudaRowCounter, 0, sizeof(int));
 		}
 	} else if (meanElementsPerRow <= 4) {
 		for (int i = 0; i < ITER; i++) {
 			spmv_light_kernel<T, 4, MAX_NUM_THREADS_PER_BLOCK / 4><<<ceil(mat->M/(float)BlockDim), BlockDim>>>(
-				cudaRowCounter, d_ptr, d_cols,d_val, d_vector, d_out,mat->M);
+				//cudaRowCounter, d_ptr, d_cols,d_val, d_vector, d_out,mat->M);
+				cudaRowCounter, mat->rIndex, mat->cIndex, mat->val, vector, out, mat->M);
 			cudaMemset(cudaRowCounter, 0, sizeof(int));
 		}
 	} else if(meanElementsPerRow <= 64) {
 		for (int i = 0; i < ITER; i++) {
 			spmv_light_kernel<T, 8, MAX_NUM_THREADS_PER_BLOCK / 8><<<ceil(mat->M/(float)BlockDim), BlockDim>>>(
-				cudaRowCounter,d_ptr,d_cols,d_val, d_vector, d_out,mat->M);
+				//cudaRowCounter,d_ptr,d_cols,d_val, d_vector, d_out,mat->M);
+				cudaRowCounter, mat->rIndex, mat->cIndex, mat->val, vector, out, mat->M);
 			cudaMemset(cudaRowCounter, 0, sizeof(int));
 		}
 	} else {
 		for (int i = 0; i < ITER; i++){
 			spmv_light_kernel<T, 32, MAX_NUM_THREADS_PER_BLOCK / 32><<<ceil(mat->M/(float)BlockDim), BlockDim>>>(
-				cudaRowCounter, d_ptr, d_cols,d_val, d_vector, d_out,mat->M);
+				//cudaRowCounter, d_ptr, d_cols,d_val, d_vector, d_out,mat->M);
+				cudaRowCounter, mat->rIndex, mat->cIndex, mat->val, vector, out, mat->M);
 			cudaMemset(cudaRowCounter, 0, sizeof(int));
 		}
 	}
@@ -157,14 +154,13 @@ void spmv_light(MatrixInfo<T> * mat,T *vector,T *out)
 
 	// Copy from device memory to host memory
     	//cudaMemcpy(out, d_out, mat->M*sizeof(T), cudaMemcpyDeviceToHost);
-    	memcpy(out, d_out, mat->M*sizeof(T));
     	
 	// Free device memory	
-	cudaFree(d_vector);
-    	cudaFree(d_val);
-    	cudaFree(d_cols);
-    	cudaFree(d_ptr);
-    	cudaFree(d_out);
+	//cudaFree(d_vector);
+    	//cudaFree(d_val);
+    	//cudaFree(d_cols);
+    	//cudaFree(d_ptr);
+    	//cudaFree(d_out);
 	
 	// Calculate and print out GFLOPs and GB/s
 	double gbs = ((mat->N * sizeof(T)) + (mat->nz*sizeof(T)) + (mat->M*sizeof(int)) + (mat->nz*sizeof(int)) + (mat->M*sizeof(T))) / (milliseconds/ITER) / 1e6;
