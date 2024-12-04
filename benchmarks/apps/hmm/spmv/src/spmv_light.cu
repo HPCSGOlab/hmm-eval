@@ -173,6 +173,6 @@ void spmv_light(MatrixInfo<T> * mat,T *vector,T *out)
     	//printf("Average GFLOP/s is %lf\n",gflop/time_taken);
 	//printf("Average GB/s is %lf\n\n",gbs);
 	//Type,Size(KB),s,GB/s
-	double size = (mat->N * sizeof(T) + mat->nz *sizeof(int)) * 1.0E-3;
+	double size = ((mat->N * sizeof(T)) + (mat->nz*sizeof(T)) + (mat->M*sizeof(int)) + (mat->nz*sizeof(int)) + (mat->M*sizeof(T))) * 1.0E-6;
 	printf("GPU,%f,%f,%f\n", size, time_taken, gbs);
 }
