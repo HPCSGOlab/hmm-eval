@@ -17,7 +17,7 @@ int main(int argc, char ** argv){
     	MatrixInfo<float> * SPnewMat = (MatrixInfo<float> *) malloc(sizeof(MatrixInfo<float>));
         MatrixInfo<double> * DPnewMat = (MatrixInfo<double> *) malloc(sizeof(MatrixInfo<double>));
     	mFile = argv[1];
-	printf("Reading matrix from %s\n", mFile);
+	//printf("Reading matrix from %s\n", mFile);
 	
 	// Load matrices as both single and double precision
 	MatrixInfo<float> * SPmatrix = read_file<float>(mFile);
@@ -28,14 +28,14 @@ int main(int argc, char ** argv){
 	}
         else
         {
-          	printf("Number of rows is %d\n",SPmatrix->M);
-      		printf("Number of columns is %d\n",SPmatrix->N);
-		printf("Number of non zeros is %d\n",SPmatrix->nz);
-    		printf("Average number of non zeros per row is %d\n\n",SPmatrix->nz/SPmatrix->M);
+          	//printf("Number of rows is %d\n",SPmatrix->M);
+      		//printf("Number of columns is %d\n",SPmatrix->N);
+		//printf("Number of non zeros is %d\n",SPmatrix->nz);
+    		//printf("Average number of non zeros per row is %d\n\n",SPmatrix->nz/SPmatrix->M);
         }
 
 	// Change from COO format to CSR format
-        printf("Changing sparse matrix format to CSR...\n");
+        //printf("Changing sparse matrix format to CSR...\n");
 	SPnewMat = transferMat<float>(SPmatrix);
         DPnewMat = transferMat<double>(DPmatrix);
 	
@@ -47,7 +47,7 @@ int main(int argc, char ** argv){
      	DPvec = write_vector<double>(DPnewMat->N);
  
 	// Run kernels and print results
-	printf("\nSingle Precision Results\n\n");
+	//printf("\nSingle Precision Results\n\n");
 	/*
         SPout = (float *)malloc(SPnewMat->M*sizeof(float));
         spmv_csr_scalar<float>(SPnewMat, SPvec, SPout);
@@ -89,7 +89,7 @@ int main(int argc, char ** argv){
 	free(SPout);
 	*/
 
-	printf("\nDouble Precision Results\n\n");       
+	//printf("\nDouble Precision Results\n\n");       
 	/*
 	DPout = (double *)malloc(SPnewMat->M*sizeof(double));
         spmv_csr_scalar<double>(DPnewMat, DPvec, DPout);

@@ -165,7 +165,10 @@ void spmv_light(MatrixInfo<T> * mat,T *vector,T *out)
 	// Calculate and print out GFLOPs and GB/s
 	double gbs = ((mat->N * sizeof(T)) + (mat->nz*sizeof(T)) + (mat->M*sizeof(int)) + (mat->nz*sizeof(int)) + (mat->M*sizeof(T))) / (milliseconds/ITER) / 1e6;
     	time_taken = (milliseconds/ITER)/1000.0;
-    	printf("Average time taken for %s is %f\n", "SpMV by GPU CSR LightSpMV Algorithm",time_taken);
+    	/*printf("Average time taken for %s is %f\n", "SpMV by GPU CSR LightSpMV Algorithm",time_taken);
     	printf("Average GFLOP/s is %lf\n",gflop/time_taken);
-	printf("Average GB/s is %lf\n\n",gbs);
+	printf("Average GB/s is %lf\n\n",gbs);*/
+	//Type,Size(KB),s,GB/s
+	double size = (mat->N * sizeof(T) + mat->nz *sizeof(int)) * 1.0E-3;
+	printf("GPU,%f,%f,%f\n", size, time_taken, gbs);
 }
