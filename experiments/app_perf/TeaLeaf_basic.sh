@@ -37,7 +37,7 @@ function setup_environment {
 	mkdir -p $DATA_DIR
 	mkdir -p $FIGS_DIR
 	
-	make -C $BENCHMARK_DIR
+	#make -C $BENCHMARK_DIR
 
 	echo $CSV_HEADER > $OUT_PATH
 }

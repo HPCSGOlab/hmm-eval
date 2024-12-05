@@ -13,7 +13,7 @@ function setup_environment {
     # Parameters
     local eval_type=$1  # This should be either 'uvm' or 'hmm'
 
-    # Finds the root directory of the git repo; the one named "gracehopper_power"
+    # Finds the root directory of the git repo; 
     ROOTDIR=`echo "${PWD%hmm-eval*}hmm-eval"`
     FILENAME=cublas_results.csv
 
