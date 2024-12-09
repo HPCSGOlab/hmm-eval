@@ -10,7 +10,7 @@ def parse_arguments():
     parser.add_argument('benchmark', type=str, help='Benchmark we are interested in.')
     return parser.parse_args()
 
-def plot_data(file_paths):
+def plot_data(file_paths, machine):
     data_for_all = []
     for file_path in file_paths:
         print(f"Parsing file: {file_path}")
@@ -36,16 +36,20 @@ def plot_data(file_paths):
 
 
     # Ensure the output directory exists
-    os.makedirs(f'../../figs/alloc-perf', exist_ok=True)
+    os.makedirs(f'../../figs/alloc-perf/{machine}', exist_ok=True)
 
     # Save the figure
-    plt.savefig(f'../../figs/alloc-perf/{benchmark_name}.png')
+    plt.savefig(f'../../figs/alloc-perf/{machine}/{benchmark_name}.png')
 
 def main():
     args = parse_arguments()
 
     # Set your directory path here
     directory_path = args.dir # e.g., "../data/cci-hopper/app_perf/"
+
+    # THIS IS LIKE VERY SPECIFIC TO THE PROJECT SO IF THERE ARE PROBS IT MIGHT BE THIS TODO
+    machine = directory_path.split("/")[-3]
+    print("IF THIS IS NOT YOUR MACHINE IM SORRY PLEASE FIX: " + machine)
 
     global benchmark_name
     benchmark_name  = args.benchmark # e.g., "stream'
@@ -60,7 +64,7 @@ def main():
             csv_list.append(os.path.join(csv_path, file))
 
     print(csv_list)
-    plot_data(csv_list)
+    plot_data(csv_list, machine)
 
 
 if __name__ == "__main__":

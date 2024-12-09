@@ -25,7 +25,7 @@ def plot_data(file_paths, machine):
 
     # Plot each memory management mode
     for idx, mode in enumerate(data_for_all):
-        plt.plot(mode['KB'], mode['s'], marker=markers[idx], label=file_paths[idx].split('/')[-3])
+        plt.plot(mode['Size'], mode['Time'], marker=markers[idx], label=file_paths[idx].split('/')[-3])
 
     # Set plot title, labels, and legend
     plt.title(f'{benchmark_name} Benchmark Performance')
