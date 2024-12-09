@@ -24,22 +24,23 @@ def plot_data(file_paths, machine):
     markers = ['o', 'x', 'v']
 
     # Plot each memory management mode
-    for idx, mode in enumerate(data_for_all):
-        plt.plot(mode['Size'], mode['AverTime'], marker=markers[idx], label=file_paths[idx].split('/')[-3])
+    for item in data_for_all[0].columns[2:]:
+        for idx, mode in enumerate(data_for_all):
+            plt.plot(mode['Size'], mode[item], marker=markers[idx], label=file_paths[idx].split('/')[-3])
 
-    # Set plot title, labels, and legend
-    plt.title(f'{benchmark_name} Benchmark Performance')
-    plt.xlabel('Problem Size')
-    plt.ylabel('s')
-    plt.ylim(0)
-    plt.legend()
+        # Set plot title, labels, and legend
+        plt.title(f'{benchmark_name} Benchmark Performance')
+        plt.xlabel('Problem Size')
+        plt.ylabel(item)
+        plt.ylim(0)
+        plt.legend()
 
 
-    # Ensure the output directory exists
-    os.makedirs(f'../../figs/alloc-perf/{machine}', exist_ok=True)
+        # Ensure the output directory exists
+        os.makedirs(f'../../figs/alloc-perf/{machine}', exist_ok=True)
 
-    # Save the figure
-    plt.savefig(f'../../figs/alloc-perf/{machine}/{benchmark_name}.png')
+        # Save the figure
+        plt.savefig(f'../../figs/alloc-perf/{machine}/{benchmark_name}_{item}.png')
 
 def main():
     args = parse_arguments()
