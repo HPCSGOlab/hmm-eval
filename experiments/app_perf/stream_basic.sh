@@ -29,7 +29,7 @@ function setup_environment {
 
 	FIGS_DIR=$ROOTDIR/figs/`hostname`/app_perf/$eval_type/stream/
 
-	CSV_HEADER="Type,Size,AverTime,GBytes/s"
+	CSV_HEADER="Type,Size,AverTime,GBytes-per-s"
 
 	rm -rf $DATA_DIR $FIGS_DIR
 

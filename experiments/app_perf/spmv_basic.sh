@@ -28,7 +28,7 @@ function setup_environment {
 
 	FIGS_DIR=$ROOTDIR/figs/`hostname`/app_perf/$eval_type/spmv/
 
-	CSV_HEADER="Type,Size,Time,GBytes/s"
+	CSV_HEADER="Type,Size,Time,GBytes-per-s"
 
 	rm -rf $DATA_DIR $FIGS_DIR
 
