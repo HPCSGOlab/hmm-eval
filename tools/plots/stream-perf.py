@@ -25,6 +25,7 @@ def plot_data(file_paths, machine):
 
     # Plot each memory management mode
     for item in data_for_all[0].columns[2:]:
+        plt.clf()
         for idx, mode in enumerate(data_for_all):
             plt.plot(mode['Size'], mode[item], marker=markers[idx], label=file_paths[idx].split('/')[-3])
 
