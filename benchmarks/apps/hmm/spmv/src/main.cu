@@ -12,13 +12,20 @@ int main(int argc, char ** argv){
     	float *SPvec, *SPout;
         double *DPvec, *DPout;
    	double time_taken;
-   	clock_t start, end;
 		
     	MatrixInfo<float> * SPnewMat = (MatrixInfo<float> *) malloc(sizeof(MatrixInfo<float>));
         MatrixInfo<double> * DPnewMat = (MatrixInfo<double> *) malloc(sizeof(MatrixInfo<double>));
     	mFile = argv[1];
 	//printf("Reading matrix from %s\n", mFile);
 	
+    	cudaEvent_t start, stop;
+    	cudaEventCreate(&start);
+    	cudaEventCreate(&stop);
+	
+	//capture the data movement
+    	cudaEventRecord(start);
+
+
 	// Load matrices as both single and double precision
 	MatrixInfo<float> * SPmatrix = read_file<float>(mFile);
         MatrixInfo<double> * DPmatrix = read_file<double>(mFile);
@@ -33,6 +40,11 @@ int main(int argc, char ** argv){
 		//printf("Number of non zeros is %d\n",SPmatrix->nz);
     		//printf("Average number of non zeros per row is %d\n\n",SPmatrix->nz/SPmatrix->M);
         }
+
+
+	double gflop = 2 * (double) DPmatrix->nz / 1e9;
+    	float milliseconds = 0;
+
 
 	// Change from COO format to CSR format
         //printf("Changing sparse matrix format to CSR...\n");
@@ -116,6 +128,20 @@ int main(int argc, char ** argv){
         spmv_light<double>(DPnewMat, DPvec, DPout);
         verify<double>(DPmatrix->nz,DPmatrix->M,DPmatrix->rIndex,DPmatrix->cIndex,DPmatrix->val,DPvec,DPout);
         free(DPout);
+
+	cudaEventRecord(stop);
+    	cudaEventSynchronize(stop);
+    	cudaEventElapsedTime(&milliseconds, start, stop);
+
+	// Calculate and print out GFLOPs and GB/s
+	double gbs = ((DPmatrix->N * sizeof(double)) + (DPmatrix->nz*sizeof(double)) + (DPmatrix->M*sizeof(int)) + (DPmatrix->nz*sizeof(int)) + (DPmatrix->M*sizeof(double))) / (milliseconds/ITER) / 1e6;
+    	time_taken = (milliseconds/ITER)/1000.0;
+    	//printf("Average time taken for %s is %f\n", "SpMV by GPU CSR LightSpMV Algorithm",time_taken);
+    	//printf("Average GFLOP/s is %lf\n",gflop/time_taken);
+	//printf("Average GB/s is %lf\n\n",gbs);
+	//Type,Size(KB),s,GB/s
+	double size = ((DPmatrix->N * sizeof(double)) + (DPmatrix->nz*sizeof(double)) + (DPmatrix->M*sizeof(int)) + (DPmatrix->nz*sizeof(int)) + (DPmatrix->M*sizeof(double))) * 1.0E-6;
+	printf("GPU,%f,%f,%f\n", size, time_taken, (gflop/time_taken));
 
 	/*
 	DPout = (double *)malloc(SPnewMat->M*sizeof(double));

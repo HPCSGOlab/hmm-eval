@@ -5,7 +5,7 @@ ENABLE_BASE=true
 ENABLE_UVM=true
 ENABLE_HMM=true
 
-datasets=("bcsstk34" "bcsstk38" "bcsstk37" "ct20stif" "pwtk")
+datasets=("bcsstk34" "bcsstk38" "bcsstk37" "ct20stif" "pwtk" "Cube_Coup_dt6")
 
 module load cuda
 
@@ -28,7 +28,7 @@ function setup_environment {
 
 	FIGS_DIR=$ROOTDIR/figs/`hostname`/app_perf/$eval_type/spmv/
 
-	CSV_HEADER="Type,Size,Time,GBytes-per-s"
+	CSV_HEADER="Type,Size,Time,GFlops"
 
 	rm -rf $DATA_DIR $FIGS_DIR
 

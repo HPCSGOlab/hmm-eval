@@ -16,3 +16,13 @@ for N in "${datasets[@]}"; do
 	rmdir $N 
 
 done
+
+wget https://suitesparse-collection-website.herokuapp.com/MM/Janna/Cube_Coup_dt6.tar.gz
+
+tar xvf Cube_Coup_dt6.tar.gz
+
+rm Cube_Coup_dt6.tar.gz
+
+mv Cube_Coup_dt6/*.mtx data/
+
+rmdir Cube_Coup_dt6

@@ -88,17 +88,10 @@ void spmv_light(MatrixInfo<T> * mat,T *vector,T *out)
     	int *d_cols, *d_ptr;
     	float time_taken;
     	double gflop = 2 * (double) mat->nz / 1e9;
-    	float milliseconds = 0;
     	int meanElementsPerRow = mat->nz/mat->M;
     	int *cudaRowCounter;
-    	cudaEvent_t start, stop;
-    	cudaEventCreate(&start);
-    	cudaEventCreate(&stop);
-	
-	//capture the data movement
-    	cudaEventRecord(start);
 
-	// Allocate memory on device
+    	// Allocate memory on device
     	cudaMalloc(&d_vector,mat->N*sizeof(T));
     	cudaMalloc(&d_val,mat->nz*sizeof(T));
     	cudaMalloc(&d_out,mat->M*sizeof(T));
@@ -141,11 +134,7 @@ void spmv_light(MatrixInfo<T> * mat,T *vector,T *out)
 		}
 	}
 
-    	cudaEventRecord(stop);
-    	cudaEventSynchronize(stop);
-    	cudaEventElapsedTime(&milliseconds, start, stop);
-
-	// Copy from device memory to host memory
+    		// Copy from device memory to host memory
     	cudaMemcpy(out, d_out, mat->M*sizeof(T), cudaMemcpyDeviceToHost);
     	
 	// Free device memory	
@@ -156,12 +145,5 @@ void spmv_light(MatrixInfo<T> * mat,T *vector,T *out)
     	cudaFree(d_out);
 	
 	// Calculate and print out GFLOPs and GB/s
-	double gbs = ((mat->N * sizeof(T)) + (mat->nz*sizeof(T)) + (mat->M*sizeof(int)) + (mat->nz*sizeof(int)) + (mat->M*sizeof(T))) / (milliseconds/ITER) / 1e6;
-    	time_taken = (milliseconds/ITER)/1000.0;
-    	//printf("Average time taken for %s is %f\n", "SpMV by GPU CSR LightSpMV Algorithm",time_taken);
-    	//printf("Average GFLOP/s is %lf\n",gflop/time_taken);
-	//printf("Average GB/s is %lf\n\n",gbs);
-	//Type,Size(KB),s,GB/s
-	double size = ((mat->N * sizeof(T)) + (mat->nz*sizeof(T)) + (mat->M*sizeof(int)) + (mat->nz*sizeof(int)) + (mat->M*sizeof(T))) * 1.0E-6;
-	printf("GPU,%f,%f,%f\n", size, time_taken, gbs);
+	
 }

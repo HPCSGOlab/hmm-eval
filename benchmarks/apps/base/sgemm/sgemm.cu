@@ -36,7 +36,7 @@ void gpu_multiply(float *A, float *B, float *C, size_t N, size_t iterations) {
 
     cudaMemcpy(d_A, A, N * N * sizeof(float), cudaMemcpyHostToDevice);
     cudaMemcpy(d_B, B, N * N * sizeof(float), cudaMemcpyHostToDevice);
-    cudaMemcpy(d_C, C, N * N * sizeof(float), cudaMemcpyHostToDevice);
+    //cudaMemcpy(d_C, C, N * N * sizeof(float), cudaMemcpyHostToDevice);
 
 
     for (size_t i = 0; i < iterations; ++i) {
