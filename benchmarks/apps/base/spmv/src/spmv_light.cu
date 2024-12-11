@@ -138,12 +138,6 @@ void spmv_light(MatrixInfo<T> * mat,T *vector,T *out)
     	cudaMemcpy(out, d_out, mat->M*sizeof(T), cudaMemcpyDeviceToHost);
     	
 	// Free device memory	
-	cudaFree(d_vector);
-    	cudaFree(d_val);
-    	cudaFree(d_cols);
-    	cudaFree(d_ptr);
-    	cudaFree(d_out);
-	
-	// Calculate and print out GFLOPs and GB/s
+		// Calculate and print out GFLOPs and GB/s
 	
 }
