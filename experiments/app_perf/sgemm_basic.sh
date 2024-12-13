@@ -40,7 +40,7 @@ function setup_environment {
 
     # make data dirs
     mkdir -p $DATA_DIR
-    mkdir -p $FIGS_DIR
+#    mkdir -p $FIGS_DIR
 
     # build benchmark if it hasn't been compiled yet
     make -C $BENCHMARK_DIR

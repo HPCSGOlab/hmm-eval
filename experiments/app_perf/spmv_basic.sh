@@ -33,7 +33,7 @@ function setup_environment {
 	rm -rf $DATA_DIR $FIGS_DIR
 
 	mkdir -p $DATA_DIR
-	mkdir -p $FIGS_DIR
+	#mkdir -p $FIGS_DIR
 	
 	#make -C $BENCHMARK_DIR
 
@@ -46,7 +46,7 @@ function run_benchmark {
 	cd $BENCHMARK_DIR
 	echo $BENCHMARK_DIR
 
-	bash get_datasets.sh
+	#bash get_datasets.sh
 	make
 
 	# changing array sizes for iterations
