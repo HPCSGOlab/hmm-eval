@@ -178,7 +178,7 @@ int main(int argc, char **argv) {
 
   std::chrono::duration<float> elapsed_time = std::chrono::duration_cast<std::chrono::duration<float>>(end - start);
 
-  double Gig = double(161 * chunk_comms_total_x * chunk_comms_total_y) / double(1024*1024*1024);
+  double Gig = double(161 * settings.grid_x_cells * settings.grid_y_cells) / double(1024*1024*1024);
   printf("CPU,%f,%f\n", Gig, elapsed_time.count());
 
   // Print the kernel-level profiling results
