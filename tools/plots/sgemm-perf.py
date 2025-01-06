@@ -30,6 +30,7 @@ def plot_data(file_paths, machine):
             plt.plot(mode['Size'], mode[item], marker=markers[idx], label=file_paths[idx].split('/')[-3])
 
         # Set plot title, labels, and legend
+        plt.rcParams.update({'font.size': 12})
         plt.title(f'{benchmark_name} Benchmark Performance')
         plt.xlabel('Problem Size')
         plt.ylabel(item)

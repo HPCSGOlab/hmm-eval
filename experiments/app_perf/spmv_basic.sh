@@ -5,7 +5,7 @@ ENABLE_BASE=true
 ENABLE_UVM=true
 ENABLE_HMM=true
 
-datasets=("bcsstk34" "bcsstk38" "bcsstk37" "ct20stif" "pwtk" "Cube_Coup_dt6")
+datasets=("bcsstk34" "bcsstk38" "bcsstk37" "ct20stif" "pwtk" "Cube_Coup_dt6" "GAP-twitter")
 
 module load cuda
 

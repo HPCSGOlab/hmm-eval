@@ -8,11 +8,8 @@ for N in "${datasets[@]}"; do
 	wget https://suitesparse-collection-website.herokuapp.com/MM/Boeing/$N.tar.gz
 
 	tar xvf $N.tar.gz
-
 	rm $N.tar.gz
-
 	mv $N/* data/
-
 	rmdir $N 
 
 done
@@ -20,9 +17,16 @@ done
 wget https://suitesparse-collection-website.herokuapp.com/MM/Janna/Cube_Coup_dt6.tar.gz
 
 tar xvf Cube_Coup_dt6.tar.gz
-
 rm Cube_Coup_dt6.tar.gz
-
 mv Cube_Coup_dt6/*.mtx data/
 
 rmdir Cube_Coup_dt6
+
+wget https://suitesparse-collection-website.herokuapp.com/MM/GAP/GAP-twitter.tar.gz
+
+tar xvf GAP-twitter.tar.gz
+rm GAP-twitter.tar.gz
+mv GAP-twitter/*.mtx data/
+rm data/GAP-twitter_sources.mtx
+
+rmdir GAP-twitter

@@ -9,6 +9,22 @@
 #define MAX_NUM_THREADS_PER_BLOCK 1024
 #define ITER 3
 
+template <typename T>
+__global__ void spmv_csr_scalar_kernel(T * d_val, T * d_vector, int * d_cols, int * d_ptr, int N, T * d_out) {
+	int tid = blockIdx.x * blockDim.x + threadIdx.x;
+
+	for (int i = tid; i < N; i += blockDim.x * gridDim.x) {
+		T t = 0;
+		int start = d_ptr[i];
+		int end = d_ptr[i + 1];
+		for (int j = start; j < end; j++) {
+			int col = d_cols[j];
+			t += d_val[j] * d_vector[col];
+		}
+		d_out[i] = t;
+	}
+}
+
 template <typename T, int THREADS_PER_VECTOR, int MAX_NUM_VECTORS_PER_BLOCK>
 __global__ void spmv_light_kernel(int* cudaRowCounter, int* d_ptr, int* d_cols,T* d_val, T* d_vector, T* d_out,int N) {
 	int i;
@@ -111,38 +127,46 @@ void spmv_light(MatrixInfo<T> * mat,T *vector,T *out)
 	memset(cudaRowCounter, 0, sizeof(int));
 
 	// Choose the vector size depending on the NNZ/Row, run the kernel and time it
-    	if (meanElementsPerRow <= 2) {
-		for (int i = 0; i < ITER; i++) {
-			spmv_light_kernel<T, 2, MAX_NUM_THREADS_PER_BLOCK / 2><<<ceil(mat->M/(float)BlockDim), BlockDim>>>(
-				//cudaRowCounter, mat->rIndex, d_cols,d_val,d_vector,d_out,mat->M);
-				cudaRowCounter, mat->rIndex, mat->cIndex, mat->val, vector, out, mat->M);
-			cudaDeviceSynchronize();
-			memset(cudaRowCounter, 0, sizeof(int));
+	if (0){
+		if (meanElementsPerRow <= 2) {
+			for (int i = 0; i < ITER; i++) {
+				spmv_light_kernel<T, 2, MAX_NUM_THREADS_PER_BLOCK / 2><<<ceil(mat->M/(float)BlockDim), BlockDim>>>(
+					//cudaRowCounter, mat->rIndex, d_cols,d_val,d_vector,d_out,mat->M);
+					cudaRowCounter, mat->rIndex, mat->cIndex, mat->val, vector, out, mat->M);
+				cudaDeviceSynchronize();
+				memset(cudaRowCounter, 0, sizeof(int));
+			}
+		} else if (meanElementsPerRow <= 4) {
+			for (int i = 0; i < ITER; i++) {
+				spmv_light_kernel<T, 4, MAX_NUM_THREADS_PER_BLOCK / 4><<<ceil(mat->M/(float)BlockDim), BlockDim>>>(
+					//cudaRowCounter, d_ptr, d_cols,d_val, d_vector, d_out,mat->M);
+					cudaRowCounter, mat->rIndex, mat->cIndex, mat->val, vector, out, mat->M);
+				cudaDeviceSynchronize();
+				memset(cudaRowCounter, 0, sizeof(int));
+			}
+		} else if(meanElementsPerRow <= 64) {
+			for (int i = 0; i < ITER; i++) {
+				spmv_light_kernel<T, 8, MAX_NUM_THREADS_PER_BLOCK / 8><<<ceil(mat->M/(float)BlockDim), BlockDim>>>(
+					//cudaRowCounter,d_ptr,d_cols,d_val, d_vector, d_out,mat->M);
+					cudaRowCounter, mat->rIndex, mat->cIndex, mat->val, vector, out, mat->M);
+				cudaDeviceSynchronize();
+				memset(cudaRowCounter, 0, sizeof(int));
+			}
+		} else {
+			for (int i = 0; i < ITER; i++){
+				spmv_light_kernel<T, 32, MAX_NUM_THREADS_PER_BLOCK / 32><<<ceil(mat->M/(float)BlockDim), BlockDim>>>(
+					//cudaRowCounter, d_ptr, d_cols,d_val, d_vector, d_out,mat->M);
+					cudaRowCounter, mat->rIndex, mat->cIndex, mat->val, vector, out, mat->M);
+				cudaDeviceSynchronize();
+				memset(cudaRowCounter, 0, sizeof(int));
+			}
 		}
-	} else if (meanElementsPerRow <= 4) {
-		for (int i = 0; i < ITER; i++) {
-			spmv_light_kernel<T, 4, MAX_NUM_THREADS_PER_BLOCK / 4><<<ceil(mat->M/(float)BlockDim), BlockDim>>>(
-				//cudaRowCounter, d_ptr, d_cols,d_val, d_vector, d_out,mat->M);
-				cudaRowCounter, mat->rIndex, mat->cIndex, mat->val, vector, out, mat->M);
+	}
+	else {
+		for (int i = 0; i < ITER; i++)
+			spmv_csr_scalar_kernel<T><<<ceil(mat->M/(float)BlockDim), BlockDim>>>(mat->val,vector,mat->cIndex,mat->rIndex,mat->M,out);
 			cudaDeviceSynchronize();
-			memset(cudaRowCounter, 0, sizeof(int));
-		}
-	} else if(meanElementsPerRow <= 64) {
-		for (int i = 0; i < ITER; i++) {
-			spmv_light_kernel<T, 8, MAX_NUM_THREADS_PER_BLOCK / 8><<<ceil(mat->M/(float)BlockDim), BlockDim>>>(
-				//cudaRowCounter,d_ptr,d_cols,d_val, d_vector, d_out,mat->M);
-				cudaRowCounter, mat->rIndex, mat->cIndex, mat->val, vector, out, mat->M);
-			cudaDeviceSynchronize();
-			memset(cudaRowCounter, 0, sizeof(int));
-		}
-	} else {
-		for (int i = 0; i < ITER; i++){
-			spmv_light_kernel<T, 32, MAX_NUM_THREADS_PER_BLOCK / 32><<<ceil(mat->M/(float)BlockDim), BlockDim>>>(
-				//cudaRowCounter, d_ptr, d_cols,d_val, d_vector, d_out,mat->M);
-				cudaRowCounter, mat->rIndex, mat->cIndex, mat->val, vector, out, mat->M);
-			cudaDeviceSynchronize();
-			memset(cudaRowCounter, 0, sizeof(int));
-		}
+		
 	}
 
     	// Copy from device memory to host memory
