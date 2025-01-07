@@ -7,7 +7,7 @@ ENABLE_HMM=true
 
 module load cuda
 
-PSIZES=( 4096 8192 16384 32768 65536)
+PSIZES=( 4096 8192 16384 32768 65536 131072)
 
 function setup_environment {
     # Parameters
