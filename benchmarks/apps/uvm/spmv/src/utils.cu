@@ -65,7 +65,9 @@ MatrixInfo<T> * read_file(const char * path){
 
 	if (f != stdin) fclose(f);
 
-    MatrixInfo<T> * mat_inf = (MatrixInfo<T> *) malloc(sizeof(MatrixInfo<T>));
+    //MatrixInfo<T> * mat_inf = (MatrixInfo<T> *) malloc(sizeof(MatrixInfo<T>));
+    MatrixInfo<T> * mat_inf;
+    cudaMallocManaged(&mat_inf, sizeof(MatrixInfo<T>));
     mat_inf->M = M;
     mat_inf->N = N;
     mat_inf->nz = nz;
@@ -86,8 +88,9 @@ void freeMatrixInfo(MatrixInfo<T> * inf){
 
 template <typename T>
 MatrixInfo<T> * transferMat(MatrixInfo<T> * mat){
-
-	MTuple<T> * tupleMat = (MTuple<T> *) malloc(mat->nz*sizeof(MTuple<T>));
+	MTuple<T> * tupleMat;
+	//MTuple<T> * tupleMat = (MTuple<T> *) malloc(mat->nz*sizeof(MTuple<T>));
+	cudaMallocManaged(&tupleMat, mat->nz*sizeof(MTuple<T>));
 
 	for (int i = 0 ; i < mat->nz ; i++){
 		tupleMat[i].r = &(mat->rIndex[i]);
@@ -96,10 +99,18 @@ MatrixInfo<T> * transferMat(MatrixInfo<T> * mat){
 	}
 	qsort(tupleMat, mat->nz, sizeof(MTuple<T>), cmpTuple<T>);
 	
-        MatrixInfo<T> * newMat = (MatrixInfo<T> *) malloc(sizeof(MatrixInfo<T>));
-	newMat->rIndex = (int *) malloc(mat->nz*sizeof(int));
-	newMat->cIndex = (int *) malloc(mat->nz*sizeof(int));
-	newMat->val = (T *) malloc(mat->nz*sizeof(T));
+        //MatrixInfo<T> * newMat = (MatrixInfo<T> *) malloc(sizeof(MatrixInfo<T>));
+	MatrixInfo<T> * newMat;
+	cudaMallocManaged(&newMat, sizeof(MatrixInfo<T>));
+	//int* newMat->rIndex;
+	//int* newMat->cIndex;
+	//T* newMat->val;
+	//newMat->rIndex = (int *) malloc(mat->nz*sizeof(int));
+	cudaMallocManaged(&newMat->rIndex, mat->nz*sizeof(int));
+	//newMat->cIndex = (int *) malloc(mat->nz*sizeof(int));
+	cudaMallocManaged(&newMat->cIndex, mat->nz*sizeof(int));
+	//newMat->val = (T *) malloc(mat->nz*sizeof(T));
+	cudaMallocManaged(&newMat->val, mat->nz*sizeof(T));
 
 	newMat->M = mat->M;
 	newMat->N = mat->N;
@@ -111,14 +122,17 @@ MatrixInfo<T> * transferMat(MatrixInfo<T> * mat){
 		newMat->val[i] = *(tupleMat[i].v);
 	}
 	
-	free(tupleMat);
+	cudaFree(tupleMat);
 	
 	return newMat;
 }
 
 template <typename T>
 void convert2CSR(MatrixInfo<T> * mat){
-	int * CSRIndex = (int *) malloc((mat->M+1)*sizeof(int));
+	//printf("%d\n", (mat->M+1)*sizeof(int));
+	//int * CSRIndex = (int *) malloc((mat->M+1)*sizeof(int));
+	int * CSRIndex;
+	cudaMallocManaged(&CSRIndex, (mat->M+1)*sizeof(int));
 	// takes values 0 to M
 	int currRow = 0;
 	// number of nonzero elements seen so far
@@ -144,7 +158,7 @@ void convert2CSR(MatrixInfo<T> * mat){
 		CSRIndex[currRow+1] = count;
 	}
 
-	free(mat->rIndex);
+	cudaFree(mat->rIndex);
 	mat->rIndex = CSRIndex;
 }
 
