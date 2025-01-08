@@ -46,7 +46,7 @@ function run_benchmark {
 	cd $BENCHMARK_DIR
 	echo $BENCHMARK_DIR
 
-	#bash get_datasets.sh
+	bash get_datasets.sh
 	make
 
 	# changing array sizes for iterations
