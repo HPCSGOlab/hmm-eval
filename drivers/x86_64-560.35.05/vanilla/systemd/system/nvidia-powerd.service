@@ -1,0 +1,9 @@
+[Unit]
+Description=nvidia-powerd service
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/nvidia-powerd
+
+[Install]
+WantedBy=multi-user.target
