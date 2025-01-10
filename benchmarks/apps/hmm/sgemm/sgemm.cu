@@ -9,7 +9,8 @@ using namespace std::chrono;
 
 void cpu_multiply(float *A, float *B, float *C, size_t N, size_t iterations) {
     for (size_t i = 0; i < iterations; ++i) {
-        cblas_sgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans,
+	    //ROW TO COL FOR CHECKING
+        cblas_sgemm(CblasColMajor, CblasNoTrans, CblasNoTrans,
                     N, N, N, 1.0f, A, N, B, N, 0.0f, C, N);
     }
 }
@@ -17,7 +18,7 @@ void cpu_multiply(float *A, float *B, float *C, size_t N, size_t iterations) {
 void gpu_multiply(float *A, float *B, float *C, size_t N, size_t iterations) {
     const float alpha = 1.0f;
     const float beta = 0.0f;
-    
+
     cublasHandle_t handle;
     cudaEvent_t start, stop;
     float elapsedTime;
@@ -106,6 +107,16 @@ int main(int argc, char **argv) {
         printf("CPU,%zu,%f,%f\n", N, elapsed_time.count(), gflops);
     } else {
         gpu_multiply(A, B, C, N, iterations);
+
+	float *CPU_C = new float[N * N];
+	cpu_multiply(A, B, CPU_C, N, iterations);
+
+#pragma omp parallel
+	for (size_t i = 0; i < N * N; i++) {
+		if (C[i] - CPU_C[i] > 0.01f) {
+			printf("C: %f != CPU_C: %f\n", C[i], CPU_C[i]);
+		}
+	}
     }
 
     delete[] A;
