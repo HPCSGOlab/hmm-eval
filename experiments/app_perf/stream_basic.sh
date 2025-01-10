@@ -34,7 +34,7 @@ function setup_environment {
 	rm -rf $DATA_DIR $FIGS_DIR
 
 	mkdir -p $DATA_DIR
-	mkdir -p $FIGS_DIR
+#	mkdir -p $FIGS_DIR
 	
 	make -C $BENCHMARK_DIR
 

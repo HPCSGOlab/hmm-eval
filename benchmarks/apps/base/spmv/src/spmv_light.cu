@@ -9,6 +9,22 @@
 #define MAX_NUM_THREADS_PER_BLOCK 1024
 #define ITER 3
 
+template <typename T>
+__global__ void spmv_csr_scalar_kernel(T * d_val, T * d_vector, int * d_cols, int * d_ptr, int N, T * d_out) {
+	int tid = blockIdx.x * blockDim.x + threadIdx.x;
+
+	for (int i = tid; i < N; i += blockDim.x * gridDim.x) {
+		T t = 0;
+		int start = d_ptr[i];
+		int end = d_ptr[i + 1];
+		for (int j = start; j < end; j++) {
+			int col = d_cols[j];
+			t += d_val[j] * d_vector[col];
+		}
+		d_out[i] = t;
+	}
+}
+
 template <typename T, int THREADS_PER_VECTOR, int MAX_NUM_VECTORS_PER_BLOCK>
 __global__ void spmv_light_kernel(int* cudaRowCounter, int* d_ptr, int* d_cols,T* d_val, T* d_vector, T* d_out,int N) {
 	int i;
@@ -88,17 +104,10 @@ void spmv_light(MatrixInfo<T> * mat,T *vector,T *out)
     	int *d_cols, *d_ptr;
     	float time_taken;
     	double gflop = 2 * (double) mat->nz / 1e9;
-    	float milliseconds = 0;
     	int meanElementsPerRow = mat->nz/mat->M;
     	int *cudaRowCounter;
-    	cudaEvent_t start, stop;
-    	cudaEventCreate(&start);
-    	cudaEventCreate(&stop);
-	
-	//capture the data movement
-    	cudaEventRecord(start);
 
-	// Allocate memory on device
+    	// Allocate memory on device
     	cudaMalloc(&d_vector,mat->N*sizeof(T));
     	cudaMalloc(&d_val,mat->nz*sizeof(T));
     	cudaMalloc(&d_out,mat->M*sizeof(T));
@@ -115,53 +124,43 @@ void spmv_light(MatrixInfo<T> * mat,T *vector,T *out)
     	cudaMemset(cudaRowCounter, 0, sizeof(int));
 
 	// Choose the vector size depending on the NNZ/Row, run the kernel and time it
-    	if (meanElementsPerRow <= 2) {
-		for (int i = 0; i < ITER; i++) {
-			spmv_light_kernel<T, 2, MAX_NUM_THREADS_PER_BLOCK / 2><<<ceil(mat->M/(float)BlockDim), BlockDim>>>(
-				cudaRowCounter, d_ptr, d_cols,d_val,d_vector,d_out,mat->M);
-			cudaMemset(cudaRowCounter, 0, sizeof(int));
-		}
-	} else if (meanElementsPerRow <= 4) {
-		for (int i = 0; i < ITER; i++) {
-			spmv_light_kernel<T, 4, MAX_NUM_THREADS_PER_BLOCK / 4><<<ceil(mat->M/(float)BlockDim), BlockDim>>>(
-				cudaRowCounter, d_ptr, d_cols,d_val, d_vector, d_out,mat->M);
-			cudaMemset(cudaRowCounter, 0, sizeof(int));
-		}
-	} else if(meanElementsPerRow <= 64) {
-		for (int i = 0; i < ITER; i++) {
-			spmv_light_kernel<T, 8, MAX_NUM_THREADS_PER_BLOCK / 8><<<ceil(mat->M/(float)BlockDim), BlockDim>>>(
-				cudaRowCounter,d_ptr,d_cols,d_val, d_vector, d_out,mat->M);
-			cudaMemset(cudaRowCounter, 0, sizeof(int));
-		}
-	} else {
-		for (int i = 0; i < ITER; i++){
-			spmv_light_kernel<T, 32, MAX_NUM_THREADS_PER_BLOCK / 32><<<ceil(mat->M/(float)BlockDim), BlockDim>>>(
-				cudaRowCounter, d_ptr, d_cols,d_val, d_vector, d_out,mat->M);
-			cudaMemset(cudaRowCounter, 0, sizeof(int));
+	if (0) {
+		printf("HERE\n");
+		if (meanElementsPerRow <= 2) {
+			for (int i = 0; i < ITER; i++) {
+				spmv_light_kernel<T, 2, MAX_NUM_THREADS_PER_BLOCK / 2><<<ceil(mat->M/(float)BlockDim), BlockDim>>>(
+					cudaRowCounter, d_ptr, d_cols,d_val,d_vector,d_out,mat->M);
+				cudaMemset(cudaRowCounter, 0, sizeof(int));
+			}
+		} else if (meanElementsPerRow <= 4) {
+			for (int i = 0; i < ITER; i++) {
+				spmv_light_kernel<T, 4, MAX_NUM_THREADS_PER_BLOCK / 4><<<ceil(mat->M/(float)BlockDim), BlockDim>>>(
+					cudaRowCounter, d_ptr, d_cols,d_val, d_vector, d_out,mat->M);
+				cudaMemset(cudaRowCounter, 0, sizeof(int));
+			}
+		} else if(meanElementsPerRow <= 64) {
+			for (int i = 0; i < ITER; i++) {
+				spmv_light_kernel<T, 8, MAX_NUM_THREADS_PER_BLOCK / 8><<<ceil(mat->M/(float)BlockDim), BlockDim>>>(
+					cudaRowCounter,d_ptr,d_cols,d_val, d_vector, d_out,mat->M);
+				cudaMemset(cudaRowCounter, 0, sizeof(int));
+			}
+		} else {
+			for (int i = 0; i < ITER; i++){
+				spmv_light_kernel<T, 32, MAX_NUM_THREADS_PER_BLOCK / 32><<<ceil(mat->M/(float)BlockDim), BlockDim>>>(
+					cudaRowCounter, d_ptr, d_cols,d_val, d_vector, d_out,mat->M);
+				cudaMemset(cudaRowCounter, 0, sizeof(int));
+			}
 		}
 	}
+	else {
+		for (int i = 0; i < ITER; i++)
+			spmv_csr_scalar_kernel<T><<<ceil(mat->M/(float)BlockDim), BlockDim>>>(d_val, d_vector, d_cols, d_ptr,mat->M,d_out);
+	}
 
-    	cudaEventRecord(stop);
-    	cudaEventSynchronize(stop);
-    	cudaEventElapsedTime(&milliseconds, start, stop);
-
-	// Copy from device memory to host memory
+    		// Copy from device memory to host memory
     	cudaMemcpy(out, d_out, mat->M*sizeof(T), cudaMemcpyDeviceToHost);
     	
 	// Free device memory	
-	cudaFree(d_vector);
-    	cudaFree(d_val);
-    	cudaFree(d_cols);
-    	cudaFree(d_ptr);
-    	cudaFree(d_out);
+		// Calculate and print out GFLOPs and GB/s
 	
-	// Calculate and print out GFLOPs and GB/s
-	double gbs = ((mat->N * sizeof(T)) + (mat->nz*sizeof(T)) + (mat->M*sizeof(int)) + (mat->nz*sizeof(int)) + (mat->M*sizeof(T))) / (milliseconds/ITER) / 1e6;
-    	time_taken = (milliseconds/ITER)/1000.0;
-    	//printf("Average time taken for %s is %f\n", "SpMV by GPU CSR LightSpMV Algorithm",time_taken);
-    	//printf("Average GFLOP/s is %lf\n",gflop/time_taken);
-	//printf("Average GB/s is %lf\n\n",gbs);
-	//Type,Size(KB),s,GB/s
-	double size = ((mat->N * sizeof(T)) + (mat->nz*sizeof(T)) + (mat->M*sizeof(int)) + (mat->nz*sizeof(int)) + (mat->M*sizeof(T))) * 1.0E-6;
-	printf("GPU,%f,%f,%f\n", size, time_taken, gbs);
 }

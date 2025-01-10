@@ -7,7 +7,7 @@ ENABLE_HMM=true
 
 module load cuda
 
-PSIZES=( 4096 8192 16384 32768 65536)
+PSIZES=( 4096 8192 16384 32768 65536 131072)
 
 function setup_environment {
     # Parameters
@@ -40,7 +40,7 @@ function setup_environment {
 
     # make data dirs
     mkdir -p $DATA_DIR
-    mkdir -p $FIGS_DIR
+#    mkdir -p $FIGS_DIR
 
     # build benchmark if it hasn't been compiled yet
     make -C $BENCHMARK_DIR

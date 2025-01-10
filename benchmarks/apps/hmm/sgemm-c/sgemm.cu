@@ -15,32 +15,24 @@ void cpu_multiply(float *A, float *B, float *C, size_t N, size_t iterations) {
 }
 
 void gpu_multiply(float *A, float *B, float *C, size_t N, size_t iterations) {
-    cublasHandle_t handle;
     const float alpha = 1.0f;
     const float beta = 0.0f;
-    cublasCreate(&handle);
-   
-
-    float *d_A, *d_B, *d_C;
-    cudaMalloc((void **)&d_A, N * N * sizeof(float));
-    cudaMalloc((void **)&d_B, N * N * sizeof(float));
-    cudaMalloc((void **)&d_C, N * N * sizeof(float));
-   
-   // Moved to include memory as part of the measurement 
-    cudaDeviceSynchronize();
+    
+    cublasHandle_t handle;
     cudaEvent_t start, stop;
     float elapsedTime;
+    
+    cublasCreate(&handle);
+
+    cudaDeviceSynchronize();
+    
+   
     cudaEventCreate(&start);
     cudaEventCreate(&stop);
     cudaEventRecord(start, 0);
 
-    cudaMemcpy(d_A, A, N * N * sizeof(float), cudaMemcpyHostToDevice);
-    cudaMemcpy(d_B, B, N * N * sizeof(float), cudaMemcpyHostToDevice);
-    //cudaMemcpy(d_C, C, N * N * sizeof(float), cudaMemcpyHostToDevice);
-
-
     for (size_t i = 0; i < iterations; ++i) {
-        cublasSgemm(handle, CUBLAS_OP_N, CUBLAS_OP_N, N, N, N, &alpha, d_A, N, d_B, N, &beta, d_C, N);
+        cublasSgemm(handle, CUBLAS_OP_N, CUBLAS_OP_N, N, N, N, &alpha, A, N, B, N, &beta, C, N);
     }
 
     cudaEventRecord(stop, 0);
@@ -54,9 +46,6 @@ void gpu_multiply(float *A, float *B, float *C, size_t N, size_t iterations) {
 
     cudaEventDestroy(start);
     cudaEventDestroy(stop);
-    cudaFree(d_A);
-    cudaFree(d_B);
-    cudaFree(d_C);
     cublasDestroy(handle);
 }
 
@@ -97,6 +86,7 @@ int main(int argc, char **argv) {
     for (size_t i = 0; i < N * N; ++i) {
         A[i] = static_cast<float>(rand_r(&seed)) / RAND_MAX;
         B[i] = static_cast<float>(rand_r(&seed)) / RAND_MAX;
+	C[i] = static_cast<float>(0);
     }
 
     if (use_cpu) {
