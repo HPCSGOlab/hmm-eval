@@ -1,1 +1,0 @@
-#define NV_MEMPOLICY_HAS_HOME_NODE

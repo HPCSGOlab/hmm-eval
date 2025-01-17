@@ -1,1 +1,0 @@
-#define NV_STACK_TRACE_PRESENT

@@ -1,1 +1,0 @@
-#define NV_BUS_TYPE_HAS_IOMMU_OPS
