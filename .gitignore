@@ -34,4 +34,3 @@ benchmarks/microbench/mmap/benchmark
 benchmarks/microbench/mmap/filegen
 benchmarks/microbench/mmap/inputs/
 benchmarks/microbench/stream/
-tools/
