@@ -1,6 +1,6 @@
 CC = g++
 NVCC = nvcc
-CFLAGS = -Wall -Wextra -O3 -g -fopenmp 
+CFLAGS = -Wall -Wextra -O3 -g #-fopenmp 
 LDFLAGS = -lopenblas
 NVFLAGS = -lcublas -Xcompiler "${CFLAGS}" -arch=sm_90
 

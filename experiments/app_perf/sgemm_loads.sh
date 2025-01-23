@@ -11,8 +11,9 @@ for N in ${types[@]}; do
 	make
 
 	echo ---------------------$N---------------------------
-
-	perf stat -e ls_tlb_flush.all,dTLB-loads,dTLB-load-misses,ls_l1_d_tlb_miss.all,ign_rd_wr_mmio_1ff8h ./sgemm -n 65536
-
+	
+	perf stat -e ls_dispatch.ld_st_dispatch,ls_misal_loads.ma4k,ls_tlb_flush.all,dTLB-loads,dTLB-load-misses ~/hmm-eval/benchmarks/apps/$N/sgemm/sgemm -n 65536	
+	
 	cd ../../
+
 done
