@@ -1,8 +1,21 @@
 #!/bin/bash -x
 
+module load cuda
+
+# check if an argument is provided
+if [ $# -eq 0 ]; then
+	echo "Usage: $0 <hmm, uvm, or base>"
+	exit 1
+fi
+
+TYPE=$1
+
+ROOT_DIR=`echo "${PWD%hmm-eval*}hmm-eval"`
+cd $ROOT_DIR/benchmarks/apps/$TYPE/sgemm
 PROGRAM="./sgemm"
-ARGS="-n $(expr 4096 \* 2)"
-#ARGS="-n $(expr 4096 \* 16)"
+
+#65536
+ARGS="-n $(expr 4096 \* 16)" 
 
 $PROGRAM $ARGS &
 PROGRAM_PID=$!
@@ -29,6 +42,6 @@ kprobe:native_flush_tlb_one_user /pid == $UVM_PID/ {
 "
 
 echo "Tracing native_flush_tlb_multi for PID $UVM_PID..."
-sudo bpftrace -I /usr/src/linux-hwe-6.8-headers-6.8.0-49/arch/x86/include -e "$BPFTRACE_SCRIPT" &> addrtrace
+sudo bpftrace -I /usr/src/linux-hwe-6.8-headers-6.8.0-49/arch/x86/include -e "$BPFTRACE_SCRIPT" &> $ROOT_DIR/experiments/kernel_perf/bpf_addr/addrtrace_$TYPE
 
 #wait $PROGRAM_ID
