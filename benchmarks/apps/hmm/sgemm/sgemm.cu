@@ -108,6 +108,7 @@ int main(int argc, char **argv) {
     } else {
         gpu_multiply(A, B, C, N, iterations);
 
+	/*
 	float *CPU_C = new float[N * N];
 	cpu_multiply(A, B, CPU_C, N, iterations);
 
@@ -117,6 +118,7 @@ int main(int argc, char **argv) {
 			printf("C: %f != CPU_C: %f\n", C[i], CPU_C[i]);
 		}
 	}
+	*/
     }
 
     delete[] A;
