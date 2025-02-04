@@ -152,7 +152,8 @@ int main(int argc, char* argv[])
     {
         CHECK_CUDA_ERROR();
         printf("Allocating %f mb\n", ARRAY_SIZE * sizeof(float) / 1000000.);
-        cudaMallocManaged(&array, ARRAY_SIZE * sizeof(float));
+        //cudaMallocManaged(&array, ARRAY_SIZE * sizeof(float));
+	array = (float *) malloc(ARRAY_SIZE * sizeof(float));
         CHECK_CUDA_ERROR();
         printf("alloced,%ld\n", ARRAY_SIZE * sizeof(float));
 
@@ -196,7 +197,8 @@ int main(int argc, char* argv[])
         //printf("perf,%lf\n", msecTotal/1000.0);
 
     CHECK_CUDA_ERROR();
-        cudaFree(array);
+        //cudaFree(array);
+    	free(array);
     CHECK_CUDA_ERROR();
     }
 }
