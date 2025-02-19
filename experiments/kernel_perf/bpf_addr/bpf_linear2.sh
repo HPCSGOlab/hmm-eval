@@ -11,12 +11,13 @@ fi
 TYPE=$1
 
 ROOT_DIR=`echo "${PWD%hmm-eval*}hmm-eval"`
-cd $ROOT_DIR/benchmarks/apps/$TYPE/sgemm
-PROGRAM="./sgemm"
+#cd $ROOT_DIR/benchmarks/apps/$TYPE/TeaLeaf-master
+#PROGRAM="./build/cuda-tealeaf"
+cd $ROOT_DIR/driver_apps/linear
+PROGRAM=./$1
 
 #65536
-#ARGS="-n $(expr 4096 \* 16)" 
-ARGS="-n $(expr 4096 \* 8)" 
+ARGS="" 
 
 $PROGRAM $ARGS &
 PROGRAM_PID=$!
@@ -43,6 +44,6 @@ kprobe:native_flush_tlb_one_user /pid == $UVM_PID/ {
 "
 
 echo "Tracing native_flush_tlb_multi for PID $UVM_PID..."
-sudo bpftrace -I /usr/src/linux-hwe-6.8-headers-6.8.0-49/arch/x86/include -e "$BPFTRACE_SCRIPT" &> $ROOT_DIR/experiments/kernel_perf/bpf_addr/addrtrace_$TYPE
+sudo bpftrace -I /usr/src/linux-hwe-6.8-headers-6.8.0-49/arch/x86/include -e "$BPFTRACE_SCRIPT" &> $ROOT_DIR/experiments/kernel_perf/bpf_addr/linear_$TYPE
 
 #wait $PROGRAM_ID

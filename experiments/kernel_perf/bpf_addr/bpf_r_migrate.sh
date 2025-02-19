@@ -11,12 +11,14 @@ fi
 TYPE=$1
 
 ROOT_DIR=`echo "${PWD%hmm-eval*}hmm-eval"`
-cd $ROOT_DIR/benchmarks/apps/$TYPE/sgemm
-PROGRAM="./sgemm"
+#cd $ROOT_DIR/benchmarks/apps/$TYPE/TeaLeaf-master
+#PROGRAM="./build/cuda-tealeaf"
+cd $ROOT_DIR/driver_apps/random
+
+PROGRAM=./$TYPE
 
 #65536
-#ARGS="-n $(expr 4096 \* 16)" 
-ARGS="-n $(expr 4096 \* 8)" 
+ARGS="8192" 
 
 $PROGRAM $ARGS &
 PROGRAM_PID=$!
@@ -33,16 +35,13 @@ while true; do
 done
 
 BPFTRACE_SCRIPT="
-#include <asm/tlbflush.h>
-kprobe:native_flush_tlb_multi /pid == $UVM_PID/ {
-    printf(\"start: %lu, end: %lu\\n\", ((struct flush_tlb_info *)arg1)->start, ((struct flush_tlb_info *)arg1)->end);
-}
-kprobe:native_flush_tlb_one_user /pid == $UVM_PID/ {
-    printf(\"addr: %lu\\n\", arg0);
+#include <linux/migrate.h>
+kprobe:migrate_vma_setup /pid == $UVM_PID/ {
+    printf(\"start: %lu, end: %lu\\n\", ((struct migrate_vma *)arg0)->start, ((struct migrate_vma *)arg0)->end);
 }
 "
 
 echo "Tracing native_flush_tlb_multi for PID $UVM_PID..."
-sudo bpftrace -I /usr/src/linux-hwe-6.8-headers-6.8.0-49/arch/x86/include -e "$BPFTRACE_SCRIPT" &> $ROOT_DIR/experiments/kernel_perf/bpf_addr/addrtrace_$TYPE
+sudo bpftrace -I /usr/src/linux-hwe-6.8-headers-6.8.0-49/arch/x86/include -e "$BPFTRACE_SCRIPT" &> $ROOT_DIR/experiments/kernel_perf/bpf_addr/rand_migr_$TYPE
 
 #wait $PROGRAM_ID

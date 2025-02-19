@@ -16,6 +16,15 @@ def parse_file(filename):
     
     return starts, ends  # Returning separate lists
 
+def print_all_addr(starts, ends, min_addr):
+    for start, end in zip(starts, ends):
+        if start == 0:
+            continue
+        else:
+            print(str((start // 4096) - min_addr) + " -> " + str((end // 4096) - min_addr))
+
+
+
 # Example usage:
 if __name__ == "__main__":
     if len(sys.argv) < 2:
@@ -27,6 +36,7 @@ if __name__ == "__main__":
 
     count_full = 0
     addr_dict = {}
+    min_addr = 9999999999999
 
     for start, end in zip(starts, ends):
         if start == 0: #and end ?
@@ -34,6 +44,8 @@ if __name__ == "__main__":
         else:
             for i in range(start, end, 4096):
                 page_address = i // 4096 # size of page
+                if page_address < min_addr:
+                    min_addr = page_address
                 if page_address in addr_dict.keys():
                     addr_dict[page_address] += 1
                 else:
@@ -42,8 +54,10 @@ if __name__ == "__main__":
     count = 0
     sizes_info = {}
 
+    print_all_addr(starts, ends, min_addr)
+   
     for key in addr_dict.keys():
-        if addr_dict[key] > 1:
+        if addr_dict[key] > 0:
             count+=1
             curr_size = addr_dict[key]
             if curr_size in sizes_info.keys():
@@ -52,4 +66,4 @@ if __name__ == "__main__":
                 sizes_info[curr_size] = 1
 
     print(sizes_info)
-    print(count)
+    print("Total Unique Pages Migrated: " + str(count))

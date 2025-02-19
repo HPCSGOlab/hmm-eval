@@ -15,6 +15,7 @@ PROGRAM="./sgemm"
 
 #65536
 ARGS="-n $(expr 4096 \* 16)" 
+#ARGS="-n $(expr 4096 \* 8)" 
 
 $PROGRAM $ARGS &
 PROGRAM_PID=$!
