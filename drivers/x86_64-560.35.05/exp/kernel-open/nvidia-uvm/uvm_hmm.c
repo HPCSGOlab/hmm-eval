@@ -23,7 +23,7 @@
 
 #include "uvm_hmm.h"
 
-// Support for HMM ( https://docs.kernel.org/mm/hmm.html ):
+// Support for HMM ( https://docs.kernel.org/mm/hmm.html )
 
 #ifdef NVCPU_X86_64
 static bool uvm_disable_hmm = false;
@@ -2907,8 +2907,9 @@ NV_STATUS uvm_hmm_va_block_service_locked(uvm_processor_id_t processor_id,
     UVM_ASSERT(vma);
 
     // If the desired destination is the CPU, try to fault in CPU pages.
-    if (UVM_ID_IS_CPU(new_residency))
+    if (UVM_ID_IS_CPU(new_residency)){
         return hmm_block_cpu_fault_locked(processor_id, va_block, va_block_retry, service_context);
+    }
 
     uvm_hmm_gpu_fault_event.processor_id = processor_id;
     uvm_hmm_gpu_fault_event.new_residency = new_residency;
@@ -2925,8 +2926,40 @@ NV_STATUS uvm_hmm_va_block_service_locked(uvm_processor_id_t processor_id,
     args->pgmap_owner = &g_uvm_global;
     args->fault_page = NULL;
 
-    ret = migrate_vma_setup_locked(args, va_block);
-    UVM_ASSERT(!ret);
+    //NICK
+    //TODO 
+    //UPDATE args->start args->end
+    //     for each subregion
+    //     in migrate_vma_*
+    //UPDATE args->src   args->dst
+    //     to be at the start of each subregion
+    //     for migrate_vma_collect_* pfns [i think]
+    //MEMOIZE args->npages
+    //     this gets set during our table walk in migrate_vma_setup
+    //         migrate_vma_pages
+    //         migrate_vma_finalize
+ 
+    uvm_va_block_region_t subregion;
+    uvm_page_mask_t *page_mask = &service_context->per_processor_masks[uvm_id_value(new_residency)].new_residency;
+
+    for_each_va_block_subregion_in_mask(subregion, page_mask, region){
+	args->start = uvm_va_block_region_start(va_block, subregion);
+	args->end = args->start + uvm_va_block_region_size(subregion);
+	
+	//printk("%lld, %lld\n", uvm_va_block_region_start(va_block, subregion) / 4096, 
+	//		uvm_va_block_region_size(subregion) / 4096);
+
+	args->src = service_context->block_context->hmm.src_pfns + subregion.first;
+	args->dst = service_context->block_context->hmm.dst_pfns + subregion.first;
+
+	ret = migrate_vma_setup_locked(args, va_block);
+	UVM_ASSERT(!ret);
+    }	
+
+    //printk("ACTUAL: %ld, %ld\n", args->start / 4096, args->end / 4096);
+
+    //ret = migrate_vma_setup_locked(args, va_block);
+    //UVM_ASSERT(!ret);
 
     // The overall process here is to migrate pages from the CPU or GPUs to the
     // faulting GPU.
@@ -2944,8 +2977,20 @@ NV_STATUS uvm_hmm_va_block_service_locked(uvm_processor_id_t processor_id,
     // page being migrated.
     status = uvm_hmm_gpu_fault_alloc_and_copy(vma, &uvm_hmm_gpu_fault_event);
     if (status == NV_WARN_MORE_PROCESSING_REQUIRED) {
-        migrate_vma_finalize(args);
+	    //NICK
+	for_each_va_block_subregion_in_mask(subregion, page_mask, region) {
+		args->start = uvm_va_block_region_start(va_block, subregion);
+		args->end = args->start + uvm_va_block_region_size(subregion);
 
+		args->src = service_context->block_context->hmm.src_pfns + subregion.first;
+		args->dst = service_context->block_context->hmm.dst_pfns + subregion.first;
+
+		args->npages = (uvm_va_block_region_size(subregion) / 4096);
+
+		migrate_vma_finalize(args);
+	}
+	//migrate_vma_finalize(args);
+	//
         // migrate_vma_setup() might have not been able to lock/isolate any
         // pages because they are swapped out or are device exclusive.
         // We do know that none of the pages in the region are zero pages
@@ -2961,11 +3006,43 @@ NV_STATUS uvm_hmm_va_block_service_locked(uvm_processor_id_t processor_id,
     }
 
     if (status == NV_OK) {
-        migrate_vma_pages(args);
+	//NICK
+	for_each_va_block_subregion_in_mask(subregion, page_mask, region) {
+		args->start = uvm_va_block_region_start(va_block, subregion);
+		args->end = args->start + uvm_va_block_region_size(subregion);
+
+		args->src = service_context->block_context->hmm.src_pfns + subregion.first;
+		args->dst = service_context->block_context->hmm.dst_pfns + subregion.first;
+
+		args->npages = (uvm_va_block_region_size(subregion) / 4096);
+
+		migrate_vma_pages(args);
+	}
+	//migrate_vma_pages(args);
         status = uvm_hmm_gpu_fault_finalize_and_map(&uvm_hmm_gpu_fault_event);
     }
 
-    migrate_vma_finalize(args);
+    //NICK
+    for_each_va_block_subregion_in_mask(subregion, page_mask, region) {
+	args->start = uvm_va_block_region_start(va_block, subregion);
+	args->end = args->start + uvm_va_block_region_size(subregion);
+
+	args->src = service_context->block_context->hmm.src_pfns + subregion.first;
+	args->dst = service_context->block_context->hmm.dst_pfns + subregion.first;
+
+	args->npages = (uvm_va_block_region_size(subregion) / 4096);
+
+    	migrate_vma_finalize(args);
+    }
+    /*
+    args->src = service_context->block_context->hmm.src_pfns + region.first;
+    args->dst = service_context->block_context->hmm.dst_pfns + region.first;
+    args->start = uvm_va_block_region_start(va_block, region);
+    args->end = uvm_va_block_region_end(va_block, region) + 1;
+    args->npages = (uvm_va_block_region_size(region) / 4096);
+    */
+
+    //migrate_vma_finalize(args);
 
     if (status == NV_WARN_NOTHING_TO_DO)
         status = NV_OK;

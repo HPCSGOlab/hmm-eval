@@ -1572,6 +1572,12 @@ static NV_STATUS service_fault_batch_block_locked(uvm_gpu_t *gpu,
         status = uvm_va_block_service_locked(gpu->id, va_block, va_block_retry, block_context);
     }
 
+    //NICK
+    //use a bitmask to check if we migrated everything in our region
+    //if not then call uvm_va_block_service_locked with updated bitmap (NOT)
+    //END NICK
+
+
     *block_faults = i - first_fault_index;
 
     ++block_context->num_retries;
