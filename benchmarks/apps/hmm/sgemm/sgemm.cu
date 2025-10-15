@@ -5,6 +5,11 @@
 #include <getopt.h>
 #include <unistd.h>
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/mman.h>
+
 using namespace std::chrono;
 
 void cpu_multiply(float *A, float *B, float *C, size_t N, size_t iterations) {
@@ -50,6 +55,21 @@ void gpu_multiply(float *A, float *B, float *C, size_t N, size_t iterations) {
     cublasDestroy(handle);
 }
 
+void *allocate_aligned(size_t size) {
+	void *ptr;
+	int result = posix_memalign(&ptr, 2 * 1024 * 1024, size);
+	if (result != 0) {
+		fprintf(stderr, "posix_memalign failed %d\n", result);
+		exit(1);
+	}
+
+	if (madvise(ptr, size, MADV_HUGEPAGE) != 0) {
+		perror("madvise");
+	}
+
+	return ptr;
+}
+
 int main(int argc, char **argv) {
     size_t N = 0;
     size_t iterations = 1;
@@ -78,16 +98,36 @@ int main(int argc, char **argv) {
         return 1;
     }
 
-    float *A = new float[N * N];
-    float *B = new float[N * N];
-    float *C = new float[N * N];
+    size_t size = sizeof(float) * N * N;
 
-    unsigned int seed = 243;
-#pragma omp parallel for private(seed)
+    /*
+    float *A = (float*) mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+    float *B = (float*) mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+    float *C = (float*) mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+
+    madvise(A, size, MADV_HUGEPAGE);
+    madvise(B, size, MADV_HUGEPAGE);
+    madvise(C, size, MADV_HUGEPAGE);
+    */
+
+    size_t hugepagesize = 2097152;
+    int rem = size % hugepagesize;
+    int numpages = size / hugepagesize;
+
+    if (rem)
+	    numpages++;
+
+    float *A = (float *)allocate_aligned(numpages * hugepagesize);
+    float *B = (float *)allocate_aligned(numpages * hugepagesize);
+    float *C = (float *)allocate_aligned(numpages * hugepagesize);
+
     for (size_t i = 0; i < N * N; ++i) {
-        A[i] = static_cast<float>(rand_r(&seed)) / RAND_MAX;
-        B[i] = static_cast<float>(rand_r(&seed)) / RAND_MAX;
+        A[i] = i % 7;
+        B[i] = (2 * i) % 7;
+	C[i] = 0;
     }
+    
+    //getchar();
 
     if (use_cpu) {
         int num_cores = sysconf(_SC_NPROCESSORS_ONLN);
@@ -121,9 +161,11 @@ int main(int argc, char **argv) {
 	*/
     }
 
-    delete[] A;
-    delete[] B;
-    delete[] C;
+    /*
+    free(A);
+    free(B);
+    free(C);
+    */
 
     return 0;
 }
