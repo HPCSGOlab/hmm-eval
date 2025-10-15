@@ -1,0 +1,13 @@
+nvidia-uvm/uvm_va_block.c:        list_del_init(&gpu_chunk->list);
+nvidia-uvm/uvm_va_block.c:        list_del_init(&gpu_chunk->list);
+nvidia-uvm/uvm_va_block.c:    list_add_tail(&gpu_chunk->list, &retry->free_chunks);
+nvidia-uvm/uvm_va_block.c:    list_add_tail(&gpu_chunk->list, &retry->used_chunks);
+nvidia-uvm/uvm_va_block.c:            list_del_init(&gpu_chunk->list);
+nvidia-uvm/uvm_hmm.c:    src_addr = uvm_gpu_phys_address(UVM_APERTURE_VID, gpu_chunk->address);
+nvidia-uvm/uvm_hmm.c:    UVM_ASSERT(gpu_chunk->state == UVM_PMM_GPU_CHUNK_STATE_ALLOCATED);
+nvidia-uvm/uvm_hmm.c:    UVM_ASSERT(gpu_chunk->is_referenced);
+nvidia-uvm/uvm_hmm.c:    gpu_chunk->va_block = va_block;
+nvidia-uvm/uvm_hmm.c:    gpu_chunk->va_block_page_index = page_index;
+nvidia-uvm/uvm_hmm.c:    UVM_ASSERT(gpu_chunk->state == UVM_PMM_GPU_CHUNK_STATE_TEMP_PINNED);
+nvidia-uvm/uvm_hmm.c:    list_del_init(&gpu_chunk->list);
+nvidia-uvm/uvm_hmm.c:    UVM_ASSERT(gpu_chunk->log2_size == PAGE_SHIFT);
