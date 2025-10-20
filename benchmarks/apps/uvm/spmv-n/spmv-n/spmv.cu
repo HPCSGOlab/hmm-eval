@@ -24,21 +24,6 @@ __global__ void spmv_csr_kernel(int num_rows, const int *rowPtr, const int *colI
 	}
 }
 
-void *allocate_aligned(size_t size) {
-	void *ptr;
-	int result = posix_memalign(&ptr, 2 * 1024 * 1024, size);
-	if (result != 0) {
-		fprintf(stderr, "posix_memalign failed %d\n", result);
-		exit(1);
-	}
-
-	if (madvise(ptr, size, MADV_HUGEPAGE) != 0) {
-		perror("madvise");
-	}
-
-	return ptr;
-}
-
 void read_mtx_to_csr(const char *filename, CSRMatrix *csr) {
     FILE *f = fopen(filename, "r");
     if (!f) {
@@ -63,32 +48,16 @@ void read_mtx_to_csr(const char *filename, CSRMatrix *csr) {
     csr->nrows = M;
     csr->ncols = N;
     csr->nnz   = NNZ;
-    
-    const size_t hugepagesize = 2097152;
-    size_t size = ((M + 1) * sizeof(int));
-    int rem = size % hugepagesize;
-    int numpages = size / hugepagesize;
-    if (rem)
-	    numpages++;
 
-    csr->row_ptr = (int *) allocate_aligned(numpages * hugepagesize);
-    memset(csr->row_ptr, 0, numpages * hugepagesize);
+    //csr->row_ptr = (int *) allocate_aligned(numpages * hugepagesize);
+    cudaMallocManaged((void **)&csr->row_ptr, (csr->nrows + 1) * sizeof(int));
+    memset(csr->row_ptr, 0, (csr->nrows + 1) * sizeof(int));
 
-    size = NNZ * sizeof(int);
-    rem = size % hugepagesize;
-    numpages = size / hugepagesize;
-    if (rem)
-	    numpages++;
+    //csr->col_idx = (int *) allocate_aligned(numpages * hugepagesize);
+    cudaMallocManaged((void **)&csr->col_idx, NNZ * sizeof(int));
 
-    csr->col_idx = (int *) allocate_aligned(numpages * hugepagesize);
-
-    size = NNZ * sizeof(float);
-    rem = size % hugepagesize;
-    numpages = size / hugepagesize;
-    if (rem)
-	    numpages++;
-
-    csr->values  = (float *) allocate_aligned(numpages * hugepagesize);
+    //csr->values  = (float *) allocate_aligned(numpages * hugepagesize);
+    cudaMallocManaged((void **)&csr->values, NNZ * sizeof(float));
 
     if (!csr->row_ptr || !csr->col_idx || !csr->values) {
         fprintf(stderr, "Memory allocation failed.\n");
@@ -153,15 +122,14 @@ int main(int argc, char **argv) {
 
     printf("Matrix loaded: %d x %d with %d nonzeros\n", A.nrows, A.ncols, A.nnz);
 
-    const size_t hugepagesize = 2097152;
-    size_t size = A.nrows;
-    size_t rem = size % hugepagesize;
-    int numpages = size / hugepagesize;
-    if (rem) 
-	    numpages++;
-
+    /*
     float* x = (float *) allocate_aligned(numpages * hugepagesize);
     float* y = (float *) allocate_aligned(numpages * hugepagesize);
+    */
+    float* x;
+    float* y;
+    cudaMallocManaged((void **)&x, A.nrows * sizeof(float));
+    cudaMallocManaged((void **)&y, A.nrows * sizeof(float));
 
     for (int i = 0; i < A.nrows; i++) {
 	x[i] = i % 7;

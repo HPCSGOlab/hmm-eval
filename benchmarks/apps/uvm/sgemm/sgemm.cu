@@ -89,10 +89,11 @@ int main(int argc, char **argv) {
     }
 
     unsigned int seed = 243;
-#pragma omp parallel for private(seed)
+
     for (size_t i = 0; i < N * N; ++i) {
-        A[i] = static_cast<float>(rand_r(&seed)) / RAND_MAX;
-        B[i] = static_cast<float>(rand_r(&seed)) / RAND_MAX;
+	A[i] = i % 7;
+	B[i] = (2 * i) % 7;
+	C[i] = 0;	
     }
 
     if (use_cpu) {
