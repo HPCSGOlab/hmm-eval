@@ -49,15 +49,12 @@ void read_mtx_to_csr(const char *filename, CSRMatrix *csr) {
     csr->ncols = N;
     csr->nnz   = NNZ;
 
-    //csr->row_ptr = (int *) allocate_aligned(numpages * hugepagesize);
-    cudaMallocManaged((void **)&csr->row_ptr, (csr->nrows + 1) * sizeof(int));
+    csr->row_ptr = (int *) malloc(sizeof(int) * (csr->nrows + 1));
     memset(csr->row_ptr, 0, (csr->nrows + 1) * sizeof(int));
 
-    //csr->col_idx = (int *) allocate_aligned(numpages * hugepagesize);
-    cudaMallocManaged((void **)&csr->col_idx, NNZ * sizeof(int));
+    csr->col_idx = (int *) malloc(sizeof(int) * NNZ);
 
-    //csr->values  = (float *) allocate_aligned(numpages * hugepagesize);
-    cudaMallocManaged((void **)&csr->values, NNZ * sizeof(float));
+    csr->values = (float *) malloc(sizeof(float) * NNZ);
 
     if (!csr->row_ptr || !csr->col_idx || !csr->values) {
         fprintf(stderr, "Memory allocation failed.\n");
@@ -122,14 +119,20 @@ int main(int argc, char **argv) {
 
     printf("Matrix loaded: %d x %d with %d nonzeros\n", A.nrows, A.ncols, A.nnz);
 
-    /*
-    float* x = (float *) allocate_aligned(numpages * hugepagesize);
-    float* y = (float *) allocate_aligned(numpages * hugepagesize);
-    */
-    float* x;
-    float* y;
-    cudaMallocManaged((void **)&x, A.nrows * sizeof(float));
-    cudaMallocManaged((void **)&y, A.nrows * sizeof(float));
+    float* x = (float*) malloc(A.nrows * sizeof(float));
+    float* y = (float *) malloc(A.nrows * sizeof(float));
+
+    float* d_x;
+    float* d_y;
+    cudaMalloc((void **)&d_x, A.nrows * sizeof(float));
+    cudaMalloc((void **)&d_y, A.nrows * sizeof(float));
+
+    int* d_row_ptr;
+    int* d_col_idx;
+    float* d_values;
+    cudaMalloc((void **)&d_row_ptr, (A.nrows + 1) * sizeof(int));
+    cudaMalloc((void **)&d_col_idx, A.nnz * sizeof(int));
+    cudaMalloc((void **)&d_values, A.nnz * sizeof(float));
 
     for (int i = 0; i < A.nrows; i++) {
 	x[i] = i % 7;
@@ -147,8 +150,15 @@ int main(int argc, char **argv) {
     cudaEventCreate(&stop);
     cudaEventRecord(start);
 
+    cudaMemcpy(d_x, x, A.nrows * sizeof(float), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_y, y, A.nrows * sizeof(float), cudaMemcpyHostToDevice);
+
+    cudaMemcpy(d_row_ptr, A.row_ptr, (A.nrows + 1) * sizeof(int), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_col_idx, A.col_idx, A.nnz * sizeof(int), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_values, A.values, A.nnz* sizeof(float), cudaMemcpyHostToDevice);
+
     for (int i = 0; i < 2; i++)
-	    spmv_csr_kernel<<<b, t>>>(A.nrows, A.row_ptr, A.col_idx, A.values, x, y);
+	    spmv_csr_kernel<<<b, t>>>(A.nrows, d_row_ptr, d_col_idx, d_values, d_x, d_y);
 
     cudaError_t err = cudaGetLastError();
     if (err != cudaSuccess) {

@@ -191,7 +191,8 @@ int main(int argc, char **argv) {
     cudaEventSynchronize(stop);
     cudaEventElapsedTime(&elapsedTime, start, stop);
 
-    float data_size = sizeof(y) + sizeof(x) + sizeof(A.row_ptr) + sizeof(A.col_idx) + sizeof(A.values)/* sizeof(y) + sizeof(x) + sizeof(A) */;
+    float data_size = (A.nrows * sizeof(float)) + (A.nrows * sizeof(float))
+		    + ((A.nrows + 1) * sizeof(int)) + (A.nnz * sizeof(int)) + (A.nnz * sizeof(float))/* sizeof(y) + sizeof(x) + sizeof(A) */;
     float bandwidth = data_size / elapsedTime;
     printf("GPU,%d,%f,%f\n", A.nrows, elapsedTime / 1000.0, bandwidth);
     
