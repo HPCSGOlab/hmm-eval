@@ -1971,9 +1971,11 @@ static NV_STATUS block_populate_pages_cpu(uvm_va_block_t *block,
     UVM_ASSERT(cpu_allocation_sizes & PAGE_SIZE);
 
     for_each_va_block_page_in_region_mask(page_index, populate_page_mask, populate_region) {
+	    /*
 	if (page_index != 0) {
-		printk("how many1\n");
+		//printk("how many1\n");
 	}
+	*/
         uvm_cpu_chunk_alloc_flags_t chunk_alloc_flags = alloc_flags;
         uvm_va_block_region_t region = populate_region;
         uvm_page_mask_t *node_pages_mask = &block_context->make_resident.node_pages_mask;
@@ -3123,7 +3125,7 @@ static NV_STATUS block_populate_pages(uvm_va_block_t *block,
     //NICK K
     //printk("we are gunna populate some pages\n");
 
-    uvm_page_index_t page_index;
+    //uvm_page_index_t page_index;
     /*printk("resident mask\n");
     for_each_va_block_page_in_mask(page_index, resident_mask, block) {
 	    printk("%d\t ", page_index);
@@ -3266,10 +3268,12 @@ static uvm_gpu_phys_address_t block_phys_page_address(uvm_va_block_t *block,
 
     if (UVM_ID_IS_CPU(block_page.processor)) {
         uvm_cpu_chunk_t *chunk = uvm_cpu_chunk_get_chunk_for_page(block, block_page.nid, block_page.page_index);
+	/*
 	if (!chunk)
-		printk("no chunk %d\n", block_page.page_index);
+		//printk("no chunk %d\n", block_page.page_index);
 	else
 		printk("chunk\n");
+		*/
         NvU64 dma_addr = uvm_cpu_chunk_get_gpu_phys_addr(chunk, gpu);
         uvm_va_block_region_t chunk_region = uvm_va_block_chunk_region(block,
                                                                        uvm_cpu_chunk_get_size(chunk),
@@ -3323,7 +3327,7 @@ static uvm_gpu_address_t block_phys_page_copy_address(uvm_va_block_t *block,
     // CPU and local GPU accesses can rely on block_phys_page_address, but the
     // resulting physical address may need to be converted into virtual.
     if (UVM_ID_IS_CPU(block_page.processor) || uvm_id_equal(block_page.processor, gpu->id)) {
-	    printk("rely on block_phys_page_address\n");
+	    //printk("rely on block_phys_page_address\n");
         return uvm_gpu_address_copy(gpu, block_phys_page_address(block, block_page, gpu));
     }
 
@@ -3336,10 +3340,12 @@ static uvm_gpu_address_t block_phys_page_copy_address(uvm_va_block_t *block,
     UVM_ASSERT(uvm_va_space_peer_enabled(va_space, gpu, owning_gpu));
 
     chunk = block_phys_page_chunk(block, block_page, &chunk_offset);
+    /*
     if (!chunk) {
-	printk("no chunk\n");
+	/printk("no chunk\n");
     }
     printk("chunk\n");
+    */
     copy_addr = uvm_pmm_gpu_peer_copy_address(&owning_gpu->pmm, chunk, gpu);
     copy_addr.address += chunk_offset;
     return copy_addr;
@@ -3641,10 +3647,15 @@ static bool is_block_phys_contig(uvm_va_block_t *block, uvm_processor_id_t id, i
 
     UVM_ASSERT(nid != NUMA_NO_NODE);
     chunk = uvm_cpu_chunk_first_in_region(block, uvm_va_block_region_from_block(block), nid, NULL);
+    
+    //NICK K
+    /*
     if (!chunk) {
 	printk("is_block_phys_contig no chunk\n");
     }
     printk("va_block_size %lld, cpu_chunk_size %d\n", uvm_va_block_size(block), uvm_cpu_chunk_get_size(chunk));
+    */
+    
     return chunk && (uvm_va_block_size(block) == uvm_cpu_chunk_get_size(chunk));
 }
 
@@ -3898,12 +3909,14 @@ static void block_copy_push(uvm_va_block_t *block,
             conf_computing_block_copy_push_gpu_to_cpu(block, copy_state, region, push);
     }
     else {
+	    /*
 	    printk("block_copy_pages else\n");
 	    if (!gpu)
 		    printk("no gpu\n");
 
 	printk("gpu\n");
 	printk("region: %d -> %d\n", region.first, region.outer);
+	*/
 
         gpu_dst_address = block_copy_get_address(block, &copy_state->dst, region.first, gpu);
         gpu_src_address = block_copy_get_address(block, &copy_state->src, region.first, gpu);
@@ -3969,18 +3982,18 @@ static NV_STATUS block_copy_pages(uvm_va_block_t *va_block,
                                   uvm_push_t *push)
 {
 
-	printk("block_copy_pages top\n");
+	//printk("block_copy_pages top\n");
     if (!block_copy_should_use_push(va_block, copy_state)) {
-	    printk("block_copy if\n");
+	   // printk("block_copy if\n");
         uvm_cpu_chunk_t *src_chunk = uvm_cpu_chunk_get_chunk_for_page(va_block, copy_state->src.nid, region.first);
         uvm_cpu_chunk_t *dst_chunk = uvm_cpu_chunk_get_chunk_for_page(va_block, copy_state->dst.nid, region.first);
-	    printk("block_copy if2\n");
+	    //printk("block_copy if2\n");
         uvm_va_block_region_t src_chunk_region = uvm_cpu_chunk_block_region(va_block, src_chunk, region.first);
         uvm_va_block_region_t dst_chunk_region = uvm_cpu_chunk_block_region(va_block, dst_chunk, region.first);
-	    printk("block_copy if3\n");
+	    //printk("block_copy if3\n");
         struct page *src_chunk_page = uvm_cpu_chunk_get_cpu_page(va_block, src_chunk, src_chunk_region.first);
         struct page *dst_chunk_page = uvm_cpu_chunk_get_cpu_page(va_block, dst_chunk, dst_chunk_region.first);
-	    printk("block_copy if4\n");
+	    //printk("block_copy if4\n");
         uvm_page_index_t page_index;
         NV_STATUS status;
 
@@ -3997,11 +4010,13 @@ static NV_STATUS block_copy_pages(uvm_va_block_t *va_block,
 
         for_each_va_block_page_in_region(page_index, region) {
 		//NICK K exp
+		/*
             printk("block_copy_pages\n");
 	    printk("page_index: %d\n", page_index);
 	    printk("region: %d -> %d\n", region.first, region.outer);
 	    printk("src_chunk_region: %d -> %d\n", src_chunk_region.first, src_chunk_region.outer);
 	    printk("dst_chunk_region: %d -> %d\n", dst_chunk_region.first, dst_chunk_region.outer);
+	    */
 
             struct page *src_page = src_chunk_page + (page_index - src_chunk_region.first);
             struct page *dst_page = dst_chunk_page + (page_index - dst_chunk_region.first);
@@ -4017,7 +4032,7 @@ static NV_STATUS block_copy_pages(uvm_va_block_t *va_block,
         }
     }
     else {
-	    printk("push\n");
+	    //printk("push\n");
         block_copy_push(va_block, copy_state, region, push);
     }
 
@@ -4096,7 +4111,7 @@ static NV_STATUS block_copy_resident_pages_between(uvm_va_block_t *block,
 
     copy_state.src.is_block_contig = is_block_phys_contig(block, src_id, copy_state.src.nid);
     copy_state.dst.is_block_contig = is_block_phys_contig(block, dst_id, copy_state.dst.nid);
-    printk("src %d : dst %d\n", copy_state.src.is_block_contig, copy_state.dst.is_block_contig);
+    //printk("src %d : dst %d\n", copy_state.src.is_block_contig, copy_state.dst.is_block_contig);
 
     // uvm_range_group_range_iter_first should only be called when the va_space
     // lock is held, which is always the case unless an eviction is taking
@@ -4110,7 +4125,8 @@ static NV_STATUS block_copy_resident_pages_between(uvm_va_block_t *block,
 
     // TODO: Bug 3745051: This function is complicated and needs refactoring
     for_each_va_block_page_in_region_mask(page_index, copy_mask, region) {
-	    printk("region start %d and end %d\n", region.first, region.outer);
+	    //NICK K
+	//printk("region start %d and end %d\n", region.first, region.outer);
         NvU64 page_start = uvm_va_block_cpu_page_address(block, page_index);
         uvm_make_resident_cause_t page_cause = (may_prefetch && uvm_page_mask_test(prefetch_page_mask, page_index)) ?
                                                 UVM_MAKE_RESIDENT_CAUSE_PREFETCH:
@@ -4166,7 +4182,7 @@ static NV_STATUS block_copy_resident_pages_between(uvm_va_block_t *block,
         }
 
         if (block_copy_should_use_push(block, &copy_state)) {
-		printk("block_copy_should_use_push\n");
+		//printk("block_copy_should_use_push\n");
             if (!copying_gpu) {
                 status = block_copy_begin_push(block, &copy_state, &block->tracker, &push);
 
@@ -4288,8 +4304,10 @@ static NV_STATUS block_copy_resident_pages_between(uvm_va_block_t *block,
         }
 
         if (!copy_state.src.is_block_contig || !copy_state.dst.is_block_contig) {
+		/*
 		printk("block_copy_pages called here\n");
 		printk("src %d : dst %d\n", copy_state.src.is_block_contig, copy_state.dst.is_block_contig);
+		*/
             status = block_copy_pages(block, &copy_state, uvm_va_block_region_for_page(page_index), &push);
             if (status != NV_OK)
                 return status;
@@ -4306,10 +4324,11 @@ static NV_STATUS block_copy_resident_pages_between(uvm_va_block_t *block,
     // Copy the remaining pages
     contig_region = uvm_va_block_region(contig_start_index, last_index + 1);
 
+    /*
     printk("contig_region: %lld -> %lld\n", 
 		    uvm_va_block_region_start(block, contig_region),
 		    uvm_va_block_region_end(block, contig_region));
-
+		    */
 
     if (uvm_va_block_region_size(contig_region) && uvm_va_block_region_contains_region(region, contig_region)) {
         if (copy_state.src.is_block_contig && copy_state.dst.is_block_contig) {
@@ -4436,6 +4455,7 @@ static NV_STATUS block_copy_resident_pages_from(uvm_va_block_t *block,
                                                    &copied_pages_from_src,
                                                    copy_tracker);
         *copied_pages_out += copied_pages_from_src;
+	//printk("NICK K copied_pages_out %d\n", copied_pages_from_src);
     }
 
     return status;
@@ -4730,13 +4750,14 @@ static NV_STATUS block_copy_resident_pages(uvm_va_block_t *block,
         UVM_ASSERT(missing_pages_count >= pages_copied);
         missing_pages_count -= pages_copied;
 
-	//printk("NICK K missing_pages_count: %d\n", missing_pages_count);
+	printk("NICK K pages_count copied: %d\n", pages_copied);
 
         if (status != NV_OK)
             goto out;
 
         if (missing_pages_count == 0) {
             UVM_ASSERT(uvm_page_mask_empty(pages_staged));
+	    //printk("leaving\n");
             goto out;
         }
 
@@ -4814,6 +4835,8 @@ static NV_STATUS block_copy_resident_pages(uvm_va_block_t *block,
             UVM_ASSERT(missing_pages_count >= pages_copied_from_node);
             missing_pages_count -= pages_copied_from_node;
             pages_copied += pages_copied_from_node;
+
+	    //printk("NICK K pages_copied between %d\n", pages_copied); 
         }
 
         if (status != NV_OK)
@@ -4876,6 +4899,22 @@ NV_STATUS uvm_va_block_make_resident_copy(uvm_va_block_t *va_block,
         status = NV_ERR_NO_MEMORY;
         goto out;
     }
+
+    //NICK K
+    /*
+    printk("resident mask\n");
+    uvm_page_index_t page_index;
+    for_each_va_block_page_in_mask(page_index, resident_mask, va_block) {
+	printk("%d\t", page_index);
+    }
+    printk("\n");
+
+    printk("page_mask\n");
+    for_each_va_block_page_in_mask(page_index, page_mask, va_block) {
+	printk("%d\t", page_index);
+    }
+    printk("\n");
+    */
 
     // Unmap all mapped processors except for UVM-Lite GPUs as their mappings
     // are largely persistent.
@@ -7515,7 +7554,7 @@ static void block_gpu_compute_new_pte_state(uvm_va_block_t *block,
     new_pte_state->needs_4k = false;
 
     can_make_new_big_ptes = true;
-    printk("can_make_new_big_ptes\n");
+    //printk("can_make_new_big_ptes\n");
 
     // Big pages can be used when mapping sysmem if the GPU supports it (Pascal+).
     if (UVM_ID_IS_CPU(resident_id) && !gpu->parent->can_map_sysmem_with_large_pages)
@@ -7558,19 +7597,21 @@ static void block_gpu_compute_new_pte_state(uvm_va_block_t *block,
              (uvm_cpu_chunk_get_size(chunk) >= big_page_size &&
               uvm_va_block_cpu_is_region_resident_on(block, nid, big_page_region)))){
             __set_bit(big_page_index, new_pte_state->big_ptes);
-	    printk("set this bit\n");
+	    //printk("set this bit\n");
 	}
 	else {
-	    printk("dont\n");
+	    //printk("dont\n");
+	    /*
 	    printk("can_make_new_big_ptes %d && is full? %d && !ID_IS_CPU %d\n", 
-			can_make_new_big_ptes, uvm_page_mask_region_full(page_mask_after, big_page_region), /*uvm_cpu_chunk_get_size(chunk), big_page_size,
-			uvm_va_block_cpu_is_region_resident_on(block, nid, big_page_region),*/ !UVM_ID_IS_CPU(resident_id));
+			can_make_new_big_ptes, uvm_page_mask_region_full(page_mask_after, big_page_region), uvm_cpu_chunk_get_size(chunk), big_page_size,
+			uvm_va_block_cpu_is_region_resident_on(block, nid, big_page_region), !UVM_ID_IS_CPU(resident_id));
+		*/
 		    //could do like IF UVM_ID_IS_CPU and check the other if statement conditions
 	}
 
         if (!test_bit(big_page_index, new_pte_state->big_ptes)) {
             new_pte_state->needs_4k = true;
-	    printk("new_pte_state->needs_4k 1\n");
+	    //printk("new_pte_state->needs_4k 1\n");
 	}
 
         // Skip to the end of the region
@@ -7584,13 +7625,13 @@ static void block_gpu_compute_new_pte_state(uvm_va_block_t *block,
         region = uvm_va_block_region(0, big_region_all.first);
         if (!uvm_page_mask_region_empty(pages_changing, region)) {
             new_pte_state->needs_4k = true;
-	    printk("new_pte_state->needs_4k 2\n");
+	    //printk("new_pte_state->needs_4k 2\n");
         }
         else {
             region = uvm_va_block_region(big_region_all.outer, uvm_va_block_num_cpu_pages(block));
             if (!uvm_page_mask_region_empty(pages_changing, region)) {
                 new_pte_state->needs_4k = true;
-	    	printk("new_pte_state->needs_4k 3\n");
+	    	//printk("new_pte_state->needs_4k 3\n");
 	    }
         }
     }
@@ -7602,7 +7643,7 @@ static void block_gpu_compute_new_pte_state(uvm_va_block_t *block,
     // initialized if it's present here, since it could have been allocated by a
     // thread which had to restart its operation due to allocation retry.
     if (gpu_state->pte_is_2m || (block_gpu_supports_2m(block, gpu) && !gpu_state->page_table_range_2m.table)) {
-	printk("end big 2m\n");
+	//printk("end big 2m\n");
         // We're splitting a 2M PTE so all of the uncovered big PTE regions will
         // become big PTEs which inherit the 2M permissions. If we haven't
         // allocated the 2M table yet, it will start as a 2M PTE until the lower
@@ -7611,7 +7652,7 @@ static void block_gpu_compute_new_pte_state(uvm_va_block_t *block,
         bitmap_complement(big_ptes_not_covered, new_pte_state->big_ptes_covered, MAX_BIG_PAGES_PER_UVM_VA_BLOCK);
     }
     else if (!gpu_state->page_table_range_4k.table && !new_pte_state->needs_4k) {
-	printk("else if\n");
+	//printk("else if\n");
         // If we don't have 4k PTEs and we won't be allocating them for this
         // operation, all of our PTEs need to be big.
         UVM_ASSERT(!bitmap_empty(new_pte_state->big_ptes, MAX_BIG_PAGES_PER_UVM_VA_BLOCK));
@@ -7619,7 +7660,7 @@ static void block_gpu_compute_new_pte_state(uvm_va_block_t *block,
         bitmap_set(big_ptes_not_covered, 0, uvm_va_block_num_big_pages(block, big_page_size));
     }
     else {
-	printk("end else\n");
+	//printk("end else\n");
 	    //NICK K
 	    /*
 	    new_pte_state->pte_is_2m = true;
@@ -12199,33 +12240,45 @@ NV_STATUS uvm_va_block_service_locked(uvm_processor_id_t processor_id,
 
     //NICK K
     //printk("outside migration\n");
+    uint64_t t0, t1;
+    //uint64_t t2, t3;
+
+    t0 = NV_GETTIME();
 
     for_each_id_in_mask(new_residency, &service_context->resident_processors) {
 	//printk("inside each id in mask\n");
         if (uvm_va_block_is_hmm(va_block)) {
+		//t2 = NV_GETTIME();
             status = uvm_hmm_va_block_service_locked(processor_id,
                                                      new_residency,
                                                      va_block,
                                                      block_retry,
                                                      service_context);
-            if (status != NV_OK)
+	    	//t3 = NV_GETTIME();
+		//printk("h,%llu,%u\n", t3 - t2, status);
+            if (status != NV_OK) {
+		    printk("hmm not ok %u\n", status);
                 break;
+	    }
 
             continue;
         }
 
         status = uvm_va_block_service_copy(processor_id, new_residency, va_block, block_retry, service_context);
         if (status != NV_OK) {
-	    //printk("service_copy broke\n");
+	    printk("service_copy broke, %u\n", status);
             break;
 	}
 
         status = uvm_va_block_service_finish(processor_id, va_block, service_context);
         if (status != NV_OK) {
-	    //printk("service_finish broke\n");
+	    printk("service_finish broke, %u\n", status);
             break;
 	}
     }
+
+    t1 = NV_GETTIME();
+    printk("c,%llu,%u\n", t1 - t0, status);
 
     return status;
 }

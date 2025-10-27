@@ -2008,9 +2008,11 @@ static void fill_dst_pfn(uvm_va_block_t *va_block,
     }
     pfn = uvm_pmm_gpu_devmem_get_pfn(&gpu->pmm, gpu_chunk);
 
+    /*
     if (!pfn_valid(pfn)) {
 	printk("no pfn made in driver\n");
     }
+    */
 
     // If the same GPU page is both source and destination, migrate_vma_pages()
     // will see the wrong "expected" reference count and not migrate it, so we
@@ -2056,7 +2058,7 @@ static void fill_dst_pfn(uvm_va_block_t *va_block,
     //	page_to_pfn?
 
     //nick... trying to add the MIGRATE_PFN_COMPOUND flag to this pfn
-    printk("chunk_order %ld\n", chunk_order);
+    //printk("chunk_order %ld\n", chunk_order);
     if (chunk_order > 0) {
 	    dst_pfns[page_index] |= MIGRATE_PFN_COMPOUND;
 	    for (int i = 1; i < 512; i++) {
@@ -2074,7 +2076,7 @@ static void fill_dst_pfns(uvm_va_block_t *va_block,
                           uvm_page_mask_t *same_devmem_page_mask,
                           uvm_processor_id_t dest_id)
 {
-    printk("dst_pfn here\n");
+    //printk("dst_pfn here\n");
     uvm_gpu_t *gpu = uvm_va_space_get_gpu(va_block->hmm.va_space, dest_id);
     uvm_page_index_t page_index;
 
@@ -2908,15 +2910,15 @@ static NV_STATUS dmamap_src_sysmem_pages(uvm_va_block_t *va_block,
                 // migrate_vma_setup() was able to isolate and lock the page;
                 // therefore, it is CPU resident and not mapped.
 		// NICK 512
-		//for (int i = 0; i < 512; i++)
-			uvm_va_block_cpu_set_resident_page(va_block, page_to_nid(src_page), page_index /*+ i*/);
+		for (int i = 0; i < 512; i++)
+			uvm_va_block_cpu_set_resident_page(va_block, page_to_nid(src_page), page_index + i);
             }
 
             // The call to migrate_vma_setup() will have inserted a migration
             // PTE so the CPU has no access.
 	    // NICK 512
-	    //for (int i = 0; i < 512; i++)
-		    cpu_mapping_clear(va_block, page_index /*+ i*/);
+	    for (int i = 0; i < 512; i++)
+		    cpu_mapping_clear(va_block, page_index + i);
         }
         else {
             // It is OK to migrate an empty anonymous page, a zero page will
@@ -2941,7 +2943,8 @@ static NV_STATUS dmamap_src_sysmem_pages(uvm_va_block_t *va_block,
 
 	printk("how many\n");
 	*/
-
+//NICK K
+	break;
         continue;
 
     clr_mask:
@@ -3206,7 +3209,23 @@ NV_STATUS uvm_hmm_va_block_service_locked(uvm_processor_id_t processor_id,
 
     //for (unsigned long i = 0; i < npages; i += max) {
 	//printk("migrate_vma_driver_now\n");
+	/*
+	uint64_t t0, t1;
+	uint64_t t2, t3;
+	t0 = NV_GETTIME();
+	t2 = NV_GETTIME();
+	*/
+
 	ret = migrate_vma_setup_locked(args, va_block);
+
+	/*
+	t3 = NV_GETTIME();
+	printk("s,%llu,%u\n", t3 - t2, ret);
+	*/
+
+	if (!(args->src[0] & MIGRATE_PFN_COMPOUND)) {
+		printk("NOT A COMPOUND SRC PAGE\n");
+	}	
 
 	/*
 	printk("migrate_vma_setup src_pfns\n");
@@ -3222,10 +3241,14 @@ NV_STATUS uvm_hmm_va_block_service_locked(uvm_processor_id_t processor_id,
 
 	if (args->cpages) {
 	    //nouveau_dmem_migrate_chunk
+	    
+	    //t2 = NV_GETTIME();
 	    status = uvm_hmm_gpu_fault_alloc_and_copy(vma, &uvm_hmm_gpu_fault_event);
+	    //t3 = NV_GETTIME();
+	    //printk("f,%llu,%u\n", t3 - t2, status);
 
 	    if (status == NV_WARN_MORE_PROCESSING_REQUIRED) {
-		printk("BAD: NV_WARN_MORE_PROCESSING_REQUIRED\n");
+		//printk("BAD: NV_WARN_MORE_PROCESSING_REQUIRED\n");
 		migrate_vma_finalize(args);
 
 		// migrate_vma_setup() might have not been able to lock/isolate any
@@ -3243,7 +3266,10 @@ NV_STATUS uvm_hmm_va_block_service_locked(uvm_processor_id_t processor_id,
 	    }
 	
 	    if (status == NV_OK) {
+		//    t2 = NV_GETTIME();
 		migrate_vma_pages(args);
+		//t3 = NV_GETTIME();
+		//printk("p,%llu,%u\n", t3 - t2, ret);
 
 		/*
 		printk("migrage_vma_pages dst_pfns\n");
@@ -3253,14 +3279,20 @@ NV_STATUS uvm_hmm_va_block_service_locked(uvm_processor_id_t processor_id,
 		printk("\tcompound_order->%d\n", compound_order(migrate_pfn_to_page(args->dst[0])));
 		*/
 
+		//t2 = NV_GETTIME();
 		status = uvm_hmm_gpu_fault_finalize_and_map(&uvm_hmm_gpu_fault_event);
+		//t3 = NV_GETTIME();
+		//printk("m,%llu,%u\n", t3 - t2, status);
 	    }
 
 	    if (status != NV_OK) {
 		//printk("fault_finalize_and_map not ok\n");
 	    }
 
+	    //t2 = NV_GETTIME();
 	    migrate_vma_finalize(args);
+	    //t3 = NV_GETTIME();
+	    //printk("v,%llu,%u\n", t3 - t2, status);
 	}
 	//printk("migrate_vma_driver_end\n");
     //}
@@ -3268,6 +3300,9 @@ NV_STATUS uvm_hmm_va_block_service_locked(uvm_processor_id_t processor_id,
 
 
     //early return; we are just gunna try to copy the nouveau today
+    //t1 = NV_GETTIME();
+    //printk("t,%llu,%u\n", t1 - t0, status);
+
     status = NV_OK;
     return status;
 
@@ -3770,10 +3805,12 @@ NV_STATUS uvm_hmm_va_block_evict_pages_from_gpu(uvm_va_block_t *va_block,
         gpu_chunk = uvm_va_block_lookup_gpu_chunk(va_block,
                                                   gpu,
                                                   uvm_va_block_cpu_page_address(va_block, page_index));
+	/*
 	if (!gpu_chunk) {
 		printk("no gpu_chunk %d\n", page_index);
 	}
 	printk("gpu_chunk %d\n", page_index);
+	*/
         status = uvm_hmm_va_block_evict_chunk_prep(va_block,
                                                    block_context,
                                                    gpu_chunk,

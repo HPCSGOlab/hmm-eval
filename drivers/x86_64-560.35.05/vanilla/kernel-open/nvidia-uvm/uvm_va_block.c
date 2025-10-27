@@ -11974,6 +11974,10 @@ NV_STATUS uvm_va_block_service_locked(uvm_processor_id_t processor_id,
                                    uvm_va_policy_get_region(va_block, service_context->region),
                                    service_context);
 
+    uint64_t t0, t1;
+    uint64_t t2, t3;
+    t0 = NV_GETTIME();
+
     for_each_id_in_mask(new_residency, &service_context->resident_processors) {
         if (uvm_va_block_is_hmm(va_block)) {
             status = uvm_hmm_va_block_service_locked(processor_id,
@@ -11987,14 +11991,23 @@ NV_STATUS uvm_va_block_service_locked(uvm_processor_id_t processor_id,
             continue;
         }
 
+	t2 = NV_GETTIME();
         status = uvm_va_block_service_copy(processor_id, new_residency, va_block, block_retry, service_context);
         if (status != NV_OK)
             break;
+	t3 = NV_GETTIME();
+    	printk("a,%llu,%u\n", t3 - t2, status);
 
+	t2 = NV_GETTIME();
         status = uvm_va_block_service_finish(processor_id, va_block, service_context);
         if (status != NV_OK)
             break;
+	t3 = NV_GETTIME();
+    	printk("b,%llu,%u\n", t3 - t2, status);
     }
+
+    t1 = NV_GETTIME();
+    printk("c,%llu,%u\n", t1 - t0, status);
 
     return status;
 }

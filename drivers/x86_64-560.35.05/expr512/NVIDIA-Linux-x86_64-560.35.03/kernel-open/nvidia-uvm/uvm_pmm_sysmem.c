@@ -924,8 +924,8 @@ NV_STATUS uvm_cpu_chunk_alloc_hmm(struct page *page,
     UVM_ASSERT(new_chunk);
 
     //NICK K 2MB
-    //long int chunk_size_to_create = PAGE_SIZE * 512;
-    long int chunk_size_to_create = PAGE_SIZE;
+    long int chunk_size_to_create = PAGE_SIZE * 512;
+    //long int chunk_size_to_create = PAGE_SIZE;
 
     //printk("cpu_chunk_alloc_hmm of size: %ld\n", chunk_size_to_create);
 
