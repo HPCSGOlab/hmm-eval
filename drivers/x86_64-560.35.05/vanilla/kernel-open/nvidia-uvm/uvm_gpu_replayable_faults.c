@@ -1414,6 +1414,15 @@ static NV_STATUS service_fault_batch_block_locked(uvm_gpu_t *gpu,
         end = va_block->end;
     }
 
+    //NICK K PRINT
+
+    /*
+    for (i = 0; i < batch_context->num_coalesced_faults; i++) {
+	uvm_fault_buffer_entry_t *current_entry = batch_context->ordered_fault_cache[i];                                
+        printk("s,%llx,%llu,%d\n", current_entry->fault_address, current_entry->timestamp, current_entry->fault_type);
+    }
+    */
+
     // Scan the sorted array and notify the fault event for all fault entries
     // in the block
     for (i = first_fault_index;
@@ -2877,6 +2886,10 @@ static void enable_disable_prefetch_faults(uvm_parent_gpu_t *parent_gpu,
 
 void uvm_parent_gpu_service_replayable_faults(uvm_parent_gpu_t *parent_gpu)
 {
+
+    uint64_t t0, t1;
+    t0 = NV_GETTIME();
+
     NvU32 num_replays = 0;
     NvU32 num_batches = 0;
     NvU32 num_throttled = 0;
@@ -2997,6 +3010,9 @@ void uvm_parent_gpu_service_replayable_faults(uvm_parent_gpu_t *parent_gpu)
 
     if (status != NV_OK)
         UVM_DBG_PRINT("Error servicing replayable faults on GPU: %s\n", uvm_parent_gpu_name(parent_gpu));
+
+    t1 = NV_GETTIME();
+    printk("w,%llu,%u\n", t1 - t0, status);
 }
 
 void uvm_parent_gpu_enable_prefetch_faults(uvm_parent_gpu_t *parent_gpu)

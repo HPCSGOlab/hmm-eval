@@ -2694,12 +2694,14 @@ static NV_STATUS dmamap_src_sysmem_pages(uvm_va_block_t *va_block,
                 continue;
             }
 
+	    /*
             if (PageSwapCache(src_page)) {
                 // TODO: Bug 4050579: Remove this when swap cached pages can be
                 // migrated.
                 status = NV_WARN_MISMATCHED_TARGET;
                 break;
             }
+	    */
 
             // If the page is already allocated, it is most likely a mirrored
             // page. Check to be sure it matches what we have recorded. The

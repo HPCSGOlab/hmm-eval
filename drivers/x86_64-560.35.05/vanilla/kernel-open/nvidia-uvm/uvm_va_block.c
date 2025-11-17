@@ -11975,10 +11975,19 @@ NV_STATUS uvm_va_block_service_locked(uvm_processor_id_t processor_id,
                                    service_context);
 
     uint64_t t0, t1;
-    uint64_t t2, t3;
     t0 = NV_GETTIME();
 
     for_each_id_in_mask(new_residency, &service_context->resident_processors) {
+	    //NICK K
+	uvm_va_block_region_t subregion;
+	uvm_va_block_region_t region = service_context->region;
+	uvm_page_mask_t *page_mask = &service_context->per_processor_masks[uvm_id_value(new_residency)].new_residency;
+
+	//start of region, size of region, is destination CPU
+	for_each_va_block_subregion_in_mask(subregion, page_mask, region) {
+		printk(" fault,%lld,%lld,%d\n", uvm_va_block_region_start(va_block, subregion), uvm_va_block_region_size(subregion), UVM_ID_IS_CPU(new_residency));
+	}
+
         if (uvm_va_block_is_hmm(va_block)) {
             status = uvm_hmm_va_block_service_locked(processor_id,
                                                      new_residency,
@@ -11991,19 +12000,13 @@ NV_STATUS uvm_va_block_service_locked(uvm_processor_id_t processor_id,
             continue;
         }
 
-	t2 = NV_GETTIME();
         status = uvm_va_block_service_copy(processor_id, new_residency, va_block, block_retry, service_context);
         if (status != NV_OK)
             break;
-	t3 = NV_GETTIME();
-    	printk("a,%llu,%u\n", t3 - t2, status);
 
-	t2 = NV_GETTIME();
         status = uvm_va_block_service_finish(processor_id, va_block, service_context);
         if (status != NV_OK)
             break;
-	t3 = NV_GETTIME();
-    	printk("b,%llu,%u\n", t3 - t2, status);
     }
 
     t1 = NV_GETTIME();
