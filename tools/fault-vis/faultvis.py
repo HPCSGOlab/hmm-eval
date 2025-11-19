@@ -76,13 +76,13 @@ def parse_uvm_groups(filename):
 # Visualization Logic
 # ------------------------------------------------------------
 
-def visualize(groups, output="faults_by_group.html"):
+def visualize(groups, output="faults_by_ts.html", window_size=0.0001):
     # Flatten groups into a DataFrame
     rows = []
     for g_index, g in enumerate(groups):
         for f in g["faults"]:
             rows.append({
-                "time": f["ts"],                  # use the actual timestamp
+                "time": f["ts"],
                 "address": f["address"],
                 "size": f["size"],
                 "cpu": "CPU" if f["cpu"] == 1 else "GPU",
@@ -92,43 +92,73 @@ def visualize(groups, output="faults_by_group.html"):
 
     df = pd.DataFrame(rows)
 
-    # ----- Base scatter for first group -----
-    first_group = df[df["group"] == 0]
+    # ---------------------------------------------------------
+    # Normalize timestamp and address
+    # ---------------------------------------------------------
+    t0 = df["time"].min()
+    a0 = df["address"].min()
+
+    df["time_norm"] = df["time"] - t0
+    df["address_norm"] = df["address"] - a0
+
+    # ---------------------------------------------------------
+    # WINDOWING / BATCHING LOGIC
+    # ---------------------------------------------------------
+    df["window"] = (df["time_norm"] // window_size).astype(int)
+    windows = sorted(df["window"].unique())
+
+    # Base scatter for first window
+    first_window = windows[0]
+    d0 = df[df["window"] == first_window]
+
     fig = go.Figure()
     fig.add_trace(go.Scatter(
-        x=first_group["time"],
-        y=first_group["size"],
+        x=d0["address_norm"],
+        y=d0["size"],
         mode="markers",
         marker=dict(size=10),
-        text=[f"addr={a}, cpu={c}, dur={d}" for a, c, d in zip(first_group["address"], first_group["cpu"], first_group["duration"])],
+        text=[
+            f"addr={hex(a)}, cpu={c}, dur={d}"
+            for a, c, d in zip(d0["address"], d0["cpu"], d0["duration"])
+        ],
         hoverinfo="text",
     ))
 
-    # ----- Frames: one per group -----
+    # ---------------------------------------------------------
+    # Create a frame per window
+    # ---------------------------------------------------------
     frames = []
-    for g in sorted(df["group"].unique()):
-        dfg = df[df["group"] == g]
+    for w in windows:
+        dft = df[df["window"] == w]
+        start_t = w * window_size
+
         frames.append(go.Frame(
             data=[go.Scatter(
-                x=dfg["time"],
-                y=dfg["size"],
+                x=dft["address_norm"],
+                y=dft["size"],
                 mode="markers",
                 marker=dict(size=10),
-                text=[f"addr={a}, cpu={c}, dur={d}" for a, c, d in zip(dfg["address"], dfg["cpu"], dfg["duration"])],
+                text=[
+                    f"addr={hex(a)}, cpu={c}, dur={d}"
+                    for a, c, d in zip(dft["address"], dft["cpu"], dft["duration"])
+                ],
                 hoverinfo="text",
             )],
-            name=str(g)
+            name=str(w),
         ))
     fig.frames = frames
 
-    # ----- Slider -----
+    # ---------------------------------------------------------
+    # Slider: each step represents a window
+    # ---------------------------------------------------------
     sliders = [{
         "steps": [
             {
-                "args": [[str(g)], {"frame": {"duration": 0}, "mode": "immediate"}],
-                "label": f"group {g}",
+                "args": [[str(w)], {"frame": {"duration": 0}, "mode": "immediate"}],
+                "label": f"{w * window_size:.6f}s",
                 "method": "animate",
-            } for g in sorted(df["group"].unique())
+            }
+            for w in windows
         ],
         "transition": {"duration": 0},
         "x": 0.1,
@@ -138,8 +168,8 @@ def visualize(groups, output="faults_by_group.html"):
     }]
 
     fig.update_layout(
-        title="UVM Faults — Scroll Through Groups",
-        xaxis_title="Timestamp (s)",
+        title=f"UVM Faults — Windowed View (window={window_size}s)",
+        xaxis_title="Address (normalized)",
         yaxis_title="Fault Size (bytes)",
         sliders=sliders,
         showlegend=False
@@ -148,20 +178,21 @@ def visualize(groups, output="faults_by_group.html"):
     fig.write_html(output)
     print(f"Wrote {output}")
 
+
 # ------------------------------------------------------------
 # CLI
 # ------------------------------------------------------------
-
 def main():
     if len(sys.argv) < 2:
-        print("Usage: python3 faultvis.py <input.txt> [output.html]")
+        print("Usage: python3 faultvis.py <input.txt> [output.html] [window_size]")
         sys.exit(1)
 
     input_file = sys.argv[1]
-    output_file = sys.argv[2] if len(sys.argv) >= 3 else "faults_by_group.html"
+    output_file = sys.argv[2] if len(sys.argv) >= 3 else "faults_by_ts.html"
+    window_size = float(sys.argv[3]) if len(sys.argv) >= 4 else 0.0001
 
     groups = parse_uvm_groups(input_file)
-    visualize(groups, output_file)
+    visualize(groups, output_file, window_size)
 
 if __name__ == "__main__":
     main()
