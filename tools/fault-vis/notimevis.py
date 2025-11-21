@@ -76,8 +76,10 @@ def parse_uvm_groups(filename):
 # Visualization Logic
 # ------------------------------------------------------------
 
-def visualize(groups, output="faults_by_ts.html", window_size=0.0001):
+def visualize(groups, output="faults_simple_rects.html", rect_width=1):
+    # ---------------------------------------------------------
     # Flatten groups into a DataFrame
+    # ---------------------------------------------------------
     rows = []
     for g_index, g in enumerate(groups):
         for f in g["faults"]:
@@ -93,7 +95,7 @@ def visualize(groups, output="faults_by_ts.html", window_size=0.0001):
     df = pd.DataFrame(rows)
 
     # ---------------------------------------------------------
-    # Normalize timestamp and address
+    # Normalize time + address
     # ---------------------------------------------------------
     t0 = df["time"].min()
     a0 = df["address"].min()
@@ -101,96 +103,64 @@ def visualize(groups, output="faults_by_ts.html", window_size=0.0001):
     df["time_norm"] = df["time"] - t0
     df["address_norm"] = df["address"] - a0
 
-    # ---------------------------------------------------------
-    # WINDOWING / BATCHING LOGIC
-    # ---------------------------------------------------------
-    df["window"] = (df["time_norm"] // window_size).astype(int)
-    windows = sorted(df["window"].unique())
-
-    # Scaling for marker size (fault size)
-    # Otherwise 4KB will be a tiny dot.
-    df["marker_size"] = (df["size"] / df["size"].max()) * 30 + 5
+    # Normalize fault size → rectangle height
+    max_size = df["size"].max()
+    df["height_norm"] = df["size"] / max_size
 
     # ---------------------------------------------------------
-    # Base frame
+    # Build the figure
     # ---------------------------------------------------------
-    first_window = windows[0]
-    d0 = df[df["window"] == first_window]
-
     fig = go.Figure()
+
+    # ----------------------------------------
+    # Add rectangles for every fault
+    # ----------------------------------------
+    shapes = []
+    for _, row in df.iterrows():
+        shapes.append({
+            "type": "rect",
+            "xref": "x",
+            "yref": "y",
+            "x0": row["time_norm"],
+            "x1": row["time_norm"] + rect_width,   # wider rectangle
+            "y0": row["address_norm"],
+            "y1": row["address_norm"] + row["height_norm"],
+            "line": {"width": 0},
+            "fillcolor": "#1f77b4" if row["cpu"] == "CPU" else "#d62728",
+            "opacity": 0.7,
+        })
+
+    fig.update_layout(shapes=shapes)
+
+    # ---------------------------------------------------------
+    # Add invisible scatter points for hover
+    # ---------------------------------------------------------
     fig.add_trace(go.Scatter(
-        x=[first_window] * len(d0),              # X axis = time window index
-        y=d0["address_norm"],                   # Y axis = address
+        x=df["time_norm"] + rect_width / 2,
+        y=df["address_norm"] + df["height_norm"] / 2,
         mode="markers",
-        marker=dict(size=d0["marker_size"]),
+        marker=dict(size=1, opacity=1),
         text=[
             f"addr={hex(a)}, cpu={c}, size={s}, dur={d}"
             for a, c, s, d in zip(
-                d0["address"], d0["cpu"], d0["size"], d0["duration"]
+                df["address"], df["cpu"], df["size"], df["duration"]
             )
         ],
-        hoverinfo="text",
+        hoverinfo="text"
     ))
-
-    # ---------------------------------------------------------
-    # Frames for each window
-    # ---------------------------------------------------------
-    frames = []
-    for w in windows:
-        dft = df[df["window"] == w]
-
-        frames.append(go.Frame(
-            data=[go.Scatter(
-                x=[w] * len(dft),             # X axis = window index
-                y=dft["address_norm"],        # Y = normalized address
-                mode="markers",
-                marker=dict(size=dft["marker_size"]),
-                text=[
-                    f"addr={hex(a)}, cpu={c}, size={s}, dur={d}"
-                    for a, c, s, d in zip(
-                        dft["address"], dft["cpu"], dft["size"], dft["duration"]
-                    )
-                ],
-                hoverinfo="text",
-            )],
-            name=str(w)
-        ))
-
-    fig.frames = frames
-
-    # ---------------------------------------------------------
-    # Slider = window index
-    # ---------------------------------------------------------
-    sliders = [{
-        "steps": [
-            {
-                "args": [[str(w)], {"frame": {"duration": 0}, "mode": "immediate"}],
-                "label": f"{w * window_size:.6f}s",
-                "method": "animate",
-            }
-            for w in windows
-        ],
-        "transition": {"duration": 0},
-        "x": 0.1,
-        "xanchor": "left",
-        "y": -0.1,
-        "yanchor": "top",
-    }]
 
     # ---------------------------------------------------------
     # Layout
     # ---------------------------------------------------------
     fig.update_layout(
-        title="UVM Faults — Windowed Timeline (Address on Y, Fault Size as Marker Size)",
-        xaxis_title="Time Window Index",
+        title="UVM Faults — All Faults (Rectangles, No Windows)",
+        xaxis_title="Time (normalized)",
         yaxis_title="Address (normalized)",
-        sliders=sliders,
         showlegend=False
     )
 
     fig.write_html(output)
     print(f"Wrote {output}")
-
 
 # ------------------------------------------------------------
 # CLI
