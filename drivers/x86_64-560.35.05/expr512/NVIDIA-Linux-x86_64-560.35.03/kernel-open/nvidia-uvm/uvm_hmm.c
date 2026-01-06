@@ -421,8 +421,6 @@ static bool hmm_invalidate(uvm_va_block_t *va_block,
     if (!va_block_context)
         return true;
 
-    //NICK K idk what's going on here
-   // return false;
     uvm_mutex_lock(&va_block->lock);
 
     // mmu_interval_notifier_remove() is always called before marking a
@@ -443,6 +441,9 @@ static bool hmm_invalidate(uvm_va_block_t *va_block,
         end = va_block->end;
     if (start > end)
         goto unlock;
+
+    //NICK K
+    printk("hmm_invalidate: %lld -> %lld inside va_block: %lld -> %lld\n", start, end, va_block->start, va_block->end);
 
     // These will be equal if no other thread causes an invalidation
     // whilst the va_block lock was dropped.
@@ -1752,8 +1753,9 @@ static NV_STATUS gpu_chunk_add(uvm_va_block_t *va_block,
     // aligned GPU chunk and copy from old to new.
     // TODO: Bug 3368756: add support for large GPU pages.
     gpu_chunk = uvm_pmm_devmem_page_to_chunk(page);
-    //unsigned long chunk_order = gpu_chunk->log2_size - PAGE_SHIFT;
-    //printk("gpu_chunk order: %lu\n", chunk_order);
+    unsigned long chunk_order = gpu_chunk->log2_size - PAGE_SHIFT;
+    printk("HERE\n");
+    printk("gpu_chunk order: %lu\n", chunk_order);
 
     UVM_ASSERT(gpu_chunk->state == UVM_PMM_GPU_CHUNK_STATE_ALLOCATED);
     UVM_ASSERT(gpu_chunk->is_referenced);
@@ -1822,6 +1824,15 @@ static NV_STATUS sync_page_and_chunk_state(uvm_va_block_t *va_block,
     uvm_page_index_t page_index;
     NV_STATUS status;
 
+    /*
+    printk("resident mask\n");
+    for_each_va_block_page_in_mask(page_index, migrated_pages, va_block) {
+	    printk("%d\t ", page_index);
+    }
+    printk("\n");
+    */
+
+
     // Wait for the GPU to finish. migrate_vma_finalize() will release the
     // migrated source pages (or non migrating destination pages), so GPU
     // opererations must be finished by then.
@@ -1843,21 +1854,21 @@ static NV_STATUS sync_page_and_chunk_state(uvm_va_block_t *va_block,
         // If a page migrated, clean up the source page.
         // Otherwise, clean up the destination page.
         if (uvm_page_mask_test(migrated_pages, page_index)) {
-	    //printk("migrated page\n");
+	    printk("migrated page\n");
             page = migrate_pfn_to_page(src_pfns[page_index]);
 	}
         else {
-	    //printk("did not migrate this page\n");
+	    printk("did not migrate this page\n");
             page = migrate_pfn_to_page(dst_pfns[page_index]);
 	}
 
         if (!page) {
-	    //printk("oh no page not here bro\n");
+	    printk("oh no page not here bro\n");
             continue;
 	}
 
         if (is_device_private_page(page)) {
-	    //printk("device is a private page so we remove chunk\n");
+	    printk("device is a private page so we remove chunk\n");
             gpu_chunk_remove(va_block, page_index, page);
         }
         else {
@@ -1865,7 +1876,8 @@ static NV_STATUS sync_page_and_chunk_state(uvm_va_block_t *va_block,
             // migrate_vma_finalize() will release the reference so we should
             // clear our pointer to it.
             // TODO: Bug 3660922: Need to handle read duplication at some point.
-            hmm_va_block_cpu_page_unpopulate(va_block, page_index, page);
+	    printk("unpopulate cpu chunk\n");
+	    hmm_va_block_cpu_page_unpopulate(va_block, page_index, page);
         }
 	break;
 
@@ -2058,7 +2070,7 @@ static void fill_dst_pfn(uvm_va_block_t *va_block,
     //	page_to_pfn?
 
     //nick... trying to add the MIGRATE_PFN_COMPOUND flag to this pfn
-    //printk("chunk_order %ld\n", chunk_order);
+    printk("chunk_order %ld\n", chunk_order);
     if (chunk_order > 0) {
 	    dst_pfns[page_index] |= MIGRATE_PFN_COMPOUND;
 	    for (int i = 1; i < 512; i++) {
@@ -2096,28 +2108,8 @@ static void fill_dst_pfns(uvm_va_block_t *va_block,
 
 	//NICK K
 	if (src_pfns[page_index] & MIGRATE_PFN_COMPOUND) {
-		/*
-		struct folio *folio;
-		folio = page_folio(migrate_pfn_to_page(dst_pfns[page_index]));
-		unsigned long order = folio_order(folio);
-		*/
-
-		//printk("src pfn is compound flagged\n");
-
-		/*
-		struct folio *src_folio;
-		src_folio = page_folio(migrate_pfn_to_page(src_pfns[page_index]));
-		unsigned long src_order = folio_order(src_folio);
-		printk("src_order: %lu @ page: %d\n", src_order, page_index);
-
-		//hopefully slot the page_index to the page right before the next one
-		//	so that the iterator still works?
-		printk("page_index: %d\n", page_index);
-		printk("page_index: %d %lu\n", page_index, src_order);
-		*/
 		unsigned long order = 9;
 		page_index += (1 << order) - 1;
-		//END
 	} else {
 		//printk("src pfn is NOT compound flagged\n");
 	}
@@ -2357,7 +2349,7 @@ static NV_STATUS uvm_hmm_devmem_fault_finalize_and_map(uvm_hmm_devmem_fault_cont
         if (uvm_page_mask_test(&devmem_fault_context->same_devmem_page_mask, page_index))
             continue;
 
-	//printk("how many2\n");
+	printk("how many2\n");
 
         // TODO: Bug 3900774: clean up murky mess of mask clearing.
         uvm_page_mask_clear(page_mask, page_index);
@@ -2834,6 +2826,8 @@ static NV_STATUS dmamap_src_sysmem_pages(uvm_va_block_t *va_block,
 
     UVM_ASSERT(service_context);
 
+    //struct folio *f = page_folio(migrate_pfn_to_page(src_pfns[0]));
+
     for_each_va_block_page_in_region_mask(page_index, page_mask, region) {
         struct page *src_page;
 
@@ -2854,20 +2848,13 @@ static NV_STATUS dmamap_src_sysmem_pages(uvm_va_block_t *va_block,
 
         // This is the page that will be copied to the destination GPU.
         src_page = migrate_pfn_to_page(src_pfns[page_index]);
+	//src_page = folio_page(f, page_index);
         if (src_page) {
 	    //printk("NICK K first here\n");
             if (is_device_private_page(src_page)) {
 		//NICK K
 		//printk("HERE2\n");
                 status = gpu_chunk_add(va_block, page_index, src_page);
-
-		/*
-		struct folio *folio;
-		folio = page_folio(src_page);
-		unsigned long order = folio_order(folio);
-
-		page_index += (1 << order) - 1;
-		*/
 
                 if (status != NV_OK)
                     break;
@@ -2896,9 +2883,9 @@ static NV_STATUS dmamap_src_sysmem_pages(uvm_va_block_t *va_block,
             }
             else {
 		//printk("allocating in hmm_va_block_cpu_page_populate\n");
-                status = hmm_va_block_cpu_page_populate(va_block, page_index, src_page);
-                if (status != NV_OK)
-                    goto clr_mask;
+		status = hmm_va_block_cpu_page_populate(va_block, page_index, src_page);
+		if (status != NV_OK)
+		    goto clr_mask;
 
                 // Since there is a CPU resident page, there shouldn't be one
                 // anywhere else. TODO: Bug 3660922: Need to handle read
@@ -2933,17 +2920,7 @@ static NV_STATUS dmamap_src_sysmem_pages(uvm_va_block_t *va_block,
             }
         }
 
-	/*
-	struct folio *folio;
-	folio = page_folio(src_page);
-	unsigned long order = folio_order(folio);
-
-	page_index += (1 << order) - 1;
-
-
-	printk("how many\n");
-	*/
-//NICK K
+       //NICK K
 	break;
         continue;
 
@@ -2999,21 +2976,10 @@ static NV_STATUS uvm_hmm_gpu_fault_alloc_and_copy(struct vm_area_struct *vma,
     uvm_page_mask_copy(page_mask,
                        &service_context->per_processor_masks[uvm_id_value(new_residency)].new_residency);
 
-    /*
-    uvm_page_index_t page_index;
-    printk("mask\n");
-    for_each_va_block_page_in_mask(page_index, page_mask, va_block) {
-	printk("%d\t", page_index);
-    }
-    printk("\n");
-    */
-
     //NICK K
     //   dont want to skip the important first page
     for (int i = 0; i < 512; i++)
 	    uvm_page_mask_set(page_mask, i);
-
-    //probably want to fault all of these 512 so uncomment that
 
     status = dmamap_src_sysmem_pages(va_block,
                                      vma,
@@ -3075,7 +3041,8 @@ static NV_STATUS uvm_hmm_gpu_fault_finalize_and_map(uvm_hmm_gpu_fault_event_t *u
         unsigned long src_pfn = src_pfns[page_index];
 
         if (src_pfn & MIGRATE_PFN_MIGRATE)
-            continue;
+	    break; //NICK K; first page is head page
+            //continue;
 
         // If a device private page isn't migrating and only the GPU page table
         // is being updated, continue to process it normally.
@@ -3083,7 +3050,6 @@ static NV_STATUS uvm_hmm_gpu_fault_finalize_and_map(uvm_hmm_gpu_fault_event_t *u
             continue;
 
         // TODO: Bug 3900774: clean up murky mess of mask clearing.
-	//printk("\tmask clearing page_index: %d\n", page_index);
         uvm_page_mask_clear(page_mask, page_index);
         clear_service_context_masks(service_context, new_residency, page_index);
 
@@ -3150,6 +3116,8 @@ NV_STATUS uvm_hmm_va_block_service_locked(uvm_processor_id_t processor_id,
     uvm_assert_mutex_locked(&va_block->lock);
     UVM_ASSERT(vma);
 
+    printk("migration to CPU? %d from CPU? %d\n", UVM_ID_IS_CPU(new_residency), UVM_ID_IS_CPU(processor_id));
+
     // If the desired destination is the CPU, try to fault in CPU pages.
     if (UVM_ID_IS_CPU(new_residency))
         return hmm_block_cpu_fault_locked(processor_id, va_block, va_block_retry, service_context);
@@ -3163,12 +3131,8 @@ NV_STATUS uvm_hmm_va_block_service_locked(uvm_processor_id_t processor_id,
     args->vma = vma;
 
     //NICK K
-    /*
-    printk("region first: %d!\n", region.first);
-    printk("region outer: %d!\n", region.outer);
-    */
 
-    printk("va_block: %lld -> %lld\n", va_block->start, va_block->end);
+    printk("va_block: %lld -> %lld; %lld\n", va_block->start, va_block->end, va_block->end - va_block->start);
     
     region.first = 0;
     region.outer = 512;

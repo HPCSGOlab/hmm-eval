@@ -1900,6 +1900,7 @@ static NV_STATUS block_populate_pages_cpu(uvm_va_block_t *block,
                                           uvm_va_block_context_t *block_context,
                                           bool staged)
 {
+	printk("block_populate_pages_cpu\n");
     NV_STATUS status = NV_OK;
     uvm_cpu_chunk_t *chunk;
     uvm_va_block_test_t *block_test = uvm_va_block_get_test(block);
@@ -1971,11 +1972,9 @@ static NV_STATUS block_populate_pages_cpu(uvm_va_block_t *block,
     UVM_ASSERT(cpu_allocation_sizes & PAGE_SIZE);
 
     for_each_va_block_page_in_region_mask(page_index, populate_page_mask, populate_region) {
-	    /*
 	if (page_index != 0) {
-		//printk("how many1\n");
+		printk("how many1\n");
 	}
-	*/
         uvm_cpu_chunk_alloc_flags_t chunk_alloc_flags = alloc_flags;
         uvm_va_block_region_t region = populate_region;
         uvm_page_mask_t *node_pages_mask = &block_context->make_resident.node_pages_mask;
@@ -2032,11 +2031,11 @@ static NV_STATUS block_populate_pages_cpu(uvm_va_block_t *block,
         // Skip iterating over all pages covered by the allocated chunk.
         page_index = region.outer - 1;
 
-	//printk("are we about to do this?\n");
+	printk("are we about to do this?\n");
 
 #if UVM_IS_CONFIG_HMM()
         if (uvm_va_block_is_hmm(block) && block_context) {
-  	    //printk("\tdo we do this?\n");
+  	    printk("\tdo we do this?\n");
             block_context->hmm.dst_pfns[page_index] = migrate_pfn(page_to_pfn(chunk->page));
 	}
 #endif
@@ -2985,7 +2984,7 @@ static NV_STATUS block_populate_gpu_chunk(uvm_va_block_t *block,
 
     UVM_ASSERT(uvm_page_mask_region_empty(&gpu_state->resident, chunk_region));
 
-    //nprintk("block_populate_gpu_chunk of size: %d\n", chunk_size);
+    //printk("block_populate_gpu_chunk of size: %d\n", chunk_size);
 
     status = block_alloc_gpu_chunk(block, retry, gpu, chunk_size, &chunk);
     if (status != NV_OK)
@@ -3005,6 +3004,8 @@ static NV_STATUS block_populate_gpu_chunk(uvm_va_block_t *block,
     // because the chunk is pinned, which means that none of the other fields in
     // the bitmap can change.
     chunk->va_block_page_index = chunk_region.first;
+
+    //printk("\tchunk_region.first %d\n", chunk_region.first);
 
     // va_block_page_index is a bitfield of size PAGE_SHIFT. Make sure at
     // compile-time that it can store VA Block page indexes.
@@ -3909,17 +3910,11 @@ static void block_copy_push(uvm_va_block_t *block,
             conf_computing_block_copy_push_gpu_to_cpu(block, copy_state, region, push);
     }
     else {
-	    /*
-	    printk("block_copy_pages else\n");
-	    if (!gpu)
-		    printk("no gpu\n");
-
-	printk("gpu\n");
-	printk("region: %d -> %d\n", region.first, region.outer);
-	*/
-
         gpu_dst_address = block_copy_get_address(block, &copy_state->dst, region.first, gpu);
         gpu_src_address = block_copy_get_address(block, &copy_state->src, region.first, gpu);
+
+	printk("\tblock_copy_pages region: %d -> %d\n", region.first, region.outer);
+	printk("\tgpu_dst_address %lld; gpu_src_address %lld\n", gpu_dst_address.address, gpu_src_address.address);
 
         gpu->parent->ce_hal->memcopy(push, gpu_dst_address, gpu_src_address, uvm_va_block_region_size(region));
     }
@@ -3990,7 +3985,7 @@ static NV_STATUS block_copy_pages(uvm_va_block_t *va_block,
 	    //printk("block_copy if2\n");
         uvm_va_block_region_t src_chunk_region = uvm_cpu_chunk_block_region(va_block, src_chunk, region.first);
         uvm_va_block_region_t dst_chunk_region = uvm_cpu_chunk_block_region(va_block, dst_chunk, region.first);
-	    //printk("block_copy if3\n");
+	    printk("block_copy if3\n");
         struct page *src_chunk_page = uvm_cpu_chunk_get_cpu_page(va_block, src_chunk, src_chunk_region.first);
         struct page *dst_chunk_page = uvm_cpu_chunk_get_cpu_page(va_block, dst_chunk, dst_chunk_region.first);
 	    //printk("block_copy if4\n");
@@ -4032,7 +4027,7 @@ static NV_STATUS block_copy_pages(uvm_va_block_t *va_block,
         }
     }
     else {
-	    //printk("push\n");
+	    printk("push\n");
         block_copy_push(va_block, copy_state, region, push);
     }
 
@@ -4100,6 +4095,7 @@ static NV_STATUS block_copy_resident_pages_between(uvm_va_block_t *block,
     }
 
     //NICK K
+    //
     for (int i = 0; i < 512; i++) {
 	uvm_page_mask_set(copy_mask, i);
     }
@@ -4111,7 +4107,7 @@ static NV_STATUS block_copy_resident_pages_between(uvm_va_block_t *block,
 
     copy_state.src.is_block_contig = is_block_phys_contig(block, src_id, copy_state.src.nid);
     copy_state.dst.is_block_contig = is_block_phys_contig(block, dst_id, copy_state.dst.nid);
-    //printk("src %d : dst %d\n", copy_state.src.is_block_contig, copy_state.dst.is_block_contig);
+    printk("src %d : dst %d\n", copy_state.src.is_block_contig, copy_state.dst.is_block_contig);
 
     // uvm_range_group_range_iter_first should only be called when the va_space
     // lock is held, which is always the case unless an eviction is taking
@@ -4123,10 +4119,13 @@ static NV_STATUS block_copy_resident_pages_between(uvm_va_block_t *block,
         rgr_has_changed = true;
     }
 
+    printk("region start %d and end %d\n", region.first, region.outer);
+
     // TODO: Bug 3745051: This function is complicated and needs refactoring
+    
     for_each_va_block_page_in_region_mask(page_index, copy_mask, region) {
 	    //NICK K
-	//printk("region start %d and end %d\n", region.first, region.outer);
+	printk("\tpage_index: %d\n", page_index);
         NvU64 page_start = uvm_va_block_cpu_page_address(block, page_index);
         uvm_make_resident_cause_t page_cause = (may_prefetch && uvm_page_mask_test(prefetch_page_mask, page_index)) ?
                                                 UVM_MAKE_RESIDENT_CAUSE_PREFETCH:
@@ -4182,7 +4181,7 @@ static NV_STATUS block_copy_resident_pages_between(uvm_va_block_t *block,
         }
 
         if (block_copy_should_use_push(block, &copy_state)) {
-		//printk("block_copy_should_use_push\n");
+		printk("block_copy_should_use_push\n");
             if (!copying_gpu) {
                 status = block_copy_begin_push(block, &copy_state, &block->tracker, &push);
 
@@ -4225,7 +4224,7 @@ static NV_STATUS block_copy_resident_pages_between(uvm_va_block_t *block,
             contig_start_index = page_index;
             contig_cause = page_cause;
 
-	    //printk("contig_start_index: %d\n", contig_start_index);
+	    printk("contig_start_index: %d\n", contig_start_index);
 
             if (block_copy_should_use_push(block, &copy_state)) {
                 // When CC is enabled, transfers between GPU and CPU don't rely on
@@ -4260,11 +4259,9 @@ static NV_STATUS block_copy_resident_pages_between(uvm_va_block_t *block,
             contig_region = uvm_va_block_region(contig_start_index, last_index + 1);
             UVM_ASSERT(uvm_va_block_region_contains_region(region, contig_region));
 
-	    /*
 	    printk("contig_region: %lld -> %lld\n", 
 			    uvm_va_block_region_start(block, contig_region),
 			    uvm_va_block_region_end(block, contig_region));
-			    */
 
             // If both src and dst are physically-contiguous, consolidate copies
             // of contiguous pages into a single method.
@@ -4304,10 +4301,8 @@ static NV_STATUS block_copy_resident_pages_between(uvm_va_block_t *block,
         }
 
         if (!copy_state.src.is_block_contig || !copy_state.dst.is_block_contig) {
-		/*
 		printk("block_copy_pages called here\n");
 		printk("src %d : dst %d\n", copy_state.src.is_block_contig, copy_state.dst.is_block_contig);
-		*/
             status = block_copy_pages(block, &copy_state, uvm_va_block_region_for_page(page_index), &push);
             if (status != NV_OK)
                 return status;
@@ -4319,16 +4314,14 @@ static NV_STATUS block_copy_resident_pages_between(uvm_va_block_t *block,
         last_index = page_index;
     }
     
-    last_index = 511;
+    //last_index = 511;
 
     // Copy the remaining pages
     contig_region = uvm_va_block_region(contig_start_index, last_index + 1);
 
-    /*
     printk("contig_region: %lld -> %lld\n", 
 		    uvm_va_block_region_start(block, contig_region),
 		    uvm_va_block_region_end(block, contig_region));
-		    */
 
     if (uvm_va_block_region_size(contig_region) && uvm_va_block_region_contains_region(region, contig_region)) {
         if (copy_state.src.is_block_contig && copy_state.dst.is_block_contig) {
@@ -4379,8 +4372,10 @@ static NV_STATUS block_copy_resident_pages_between(uvm_va_block_t *block,
     //NICK K 
     //	folio is 512 pages
 
+    /*
     for (int i = 0; i < 512; i++)
 	    uvm_page_mask_set(migrated_pages, i);
+	    */
 
     return status;
 }
@@ -4899,22 +4894,6 @@ NV_STATUS uvm_va_block_make_resident_copy(uvm_va_block_t *va_block,
         status = NV_ERR_NO_MEMORY;
         goto out;
     }
-
-    //NICK K
-    /*
-    printk("resident mask\n");
-    uvm_page_index_t page_index;
-    for_each_va_block_page_in_mask(page_index, resident_mask, va_block) {
-	printk("%d\t", page_index);
-    }
-    printk("\n");
-
-    printk("page_mask\n");
-    for_each_va_block_page_in_mask(page_index, page_mask, va_block) {
-	printk("%d\t", page_index);
-    }
-    printk("\n");
-    */
 
     // Unmap all mapped processors except for UVM-Lite GPUs as their mappings
     // are largely persistent.
@@ -11961,7 +11940,7 @@ NV_STATUS uvm_va_block_service_finish(uvm_processor_id_t processor_id,
 	for (int i = 0; i < 512; i++) {
 		new_prot = compute_new_permission(va_block,
 						  service_context->block_context,
-						  page_index + i,
+						  i,
 						  processor_id,
 						  new_residency,
 						  service_context->access_type[i]);
@@ -12070,8 +12049,8 @@ NV_STATUS uvm_va_block_service_finish(uvm_processor_id_t processor_id,
         // HMM cpu mappings can be upgraded at any time without notification
         // so no need to downgrade first.
         if (service_context->operation != UVM_SERVICE_OPERATION_ACCESS_COUNTERS &&
-            UVM_ID_IS_CPU(processor_id) /*&&
-            !uvm_va_block_is_hmm(va_block)*/) {
+            UVM_ID_IS_CPU(processor_id) &&
+            !uvm_va_block_is_hmm(va_block)) {
             // The kernel can downgrade managed CPU mappings at any time without
             // notifying us, which means our PTE state could be stale. We
             // handle this by unmapping the CPU PTE and re-mapping it again.
@@ -12240,8 +12219,8 @@ NV_STATUS uvm_va_block_service_locked(uvm_processor_id_t processor_id,
 
     //NICK K
     //printk("outside migration\n");
-    uint64_t t0, t1;
     //uint64_t t2, t3;
+    uint64_t t0, t1;
 
     t0 = NV_GETTIME();
 
@@ -12278,7 +12257,13 @@ NV_STATUS uvm_va_block_service_locked(uvm_processor_id_t processor_id,
     }
 
     t1 = NV_GETTIME();
-    printk("c,%llu,%u\n", t1 - t0, status);
+
+    //NICK dumb
+    u64 delta_ns = t1 - t0;
+    unsigned long delta_us = div_u64(delta_ns, NSEC_PER_USEC);
+    unsigned long delta_ms = delta_us / 1000;
+
+    printk("(+%lu.%03lu ms) migration\n", delta_ms, delta_us % 1000);
 
     return status;
 }
