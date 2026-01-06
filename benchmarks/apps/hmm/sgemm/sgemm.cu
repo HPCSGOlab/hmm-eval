@@ -4,7 +4,6 @@
 #include <cblas.h>
 #include <getopt.h>
 #include <unistd.h>
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -31,7 +30,6 @@ void gpu_multiply(float *A, float *B, float *C, size_t N, size_t iterations) {
     cublasCreate(&handle);
 
     cudaDeviceSynchronize();
-    
    
     cudaEventCreate(&start);
     cudaEventCreate(&stop);
@@ -100,22 +98,14 @@ int main(int argc, char **argv) {
 
     size_t size = sizeof(float) * N * N;
 
-    /*
-    float *A = (float*) mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
-    float *B = (float*) mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
-    float *C = (float*) mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
-
-    madvise(A, size, MADV_HUGEPAGE);
-    madvise(B, size, MADV_HUGEPAGE);
-    madvise(C, size, MADV_HUGEPAGE);
-    */
-
     size_t hugepagesize = 2097152;
     int rem = size % hugepagesize;
     int numpages = size / hugepagesize;
 
     if (rem)
 	    numpages++;
+
+    printf("num hugepages %d\n", numpages * 3);
 
     float *A = (float *)allocate_aligned(numpages * hugepagesize);
     float *B = (float *)allocate_aligned(numpages * hugepagesize);
@@ -147,6 +137,10 @@ int main(int argc, char **argv) {
         printf("CPU,%zu,%f,%f\n", N, elapsed_time.count(), gflops);
     } else {
         gpu_multiply(A, B, C, N, iterations);
+
+	printf("A: %px\n", (void *) A);
+	printf("B; %px\n", (void *) B);
+	printf("C: %px\n", (void *) C);
 
 	/*
 	float *CPU_C = new float[N * N];
