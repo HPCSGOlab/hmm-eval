@@ -20,29 +20,8 @@ __global__ void spmv_csr_kernel(int num_rows, const int *rowPtr, const int *colI
 			dot += val[j] * x[colIdx[j]];
 		}
 
-		/*
-		if (i > (num_rows - 200))
-			printf("%d, %f, %f, %d\n", i,x[i], val[i], rowPtr[i]);
-			*/
-
 		y[i] = dot;
 	}
-}
-
-void *allocate_aligned(size_t size) {
-	void *ptr;
-	int result = posix_memalign(&ptr, 2 * 1024 * 1024, size);
-	printf("size alloced: %zu\n", size);
-	if (result != 0) {
-		fprintf(stderr, "posix_memalign failed %d\n", result);
-		exit(1);
-	}
-
-	if (madvise(ptr, size, MADV_HUGEPAGE) != 0) {
-		perror("madvise");
-	}
-
-	return ptr;
 }
 
 void read_mtx_to_csr(const char *filename, CSRMatrix *csr) {
@@ -70,34 +49,18 @@ void read_mtx_to_csr(const char *filename, CSRMatrix *csr) {
     csr->ncols = N;
     csr->nnz   = NNZ;
     
-    const size_t hugepagesize = 2097152;
     size_t size = ((M + 1) * sizeof(int));
-    int rem = size % hugepagesize;
-    int numpages = size / hugepagesize;
-    if (rem)
-	    numpages++;
-    printf("%d, %zu\n", numpages, size);
 
-    csr->row_ptr = (int *) allocate_aligned(numpages * hugepagesize);
-    memset(csr->row_ptr, 0, numpages * hugepagesize);
+    csr->row_ptr = (int *) (size);
+    memset(csr->row_ptr, 0, size);
 
     size = NNZ * sizeof(int);
-    rem = size % hugepagesize;
-    numpages = size / hugepagesize;
-    if (rem)
-	    numpages++;
-    printf("%d, %zu\n", numpages, size);
 
-    csr->col_idx = (int *) allocate_aligned(numpages * hugepagesize);
+    csr->col_idx = (int *) malloc(size);
 
     size = NNZ * sizeof(float);
-    rem = size % hugepagesize;
-    numpages = size / hugepagesize;
-    if (rem)
-	    numpages++;
-    printf("%d, %zu\n", numpages, size);
 
-    csr->values  = (float *) allocate_aligned(numpages * hugepagesize);
+    csr->values  = (float *) malloc(size);
 
     if (!csr->row_ptr || !csr->col_idx || !csr->values) {
         fprintf(stderr, "Memory allocation failed.\n");
@@ -162,27 +125,15 @@ int main(int argc, char **argv) {
 
     printf("Matrix loaded: %d x %d with %d nonzeros\n", A.nrows, A.ncols, A.nnz);
 
-    const size_t hugepagesize = 2097152;
     size_t size = A.nrows * sizeof(float);
-    size_t rem = size % hugepagesize;
-    int numpages = size / hugepagesize;
-    if (rem) 
-	    numpages++;
-    printf("%d, %zu, %zu\n", numpages, size, hugepagesize);
-    printf("%d, %zu\n", numpages, size);
 
-    float* x = (float *) allocate_aligned(numpages * hugepagesize);
-    float* y = (float *) allocate_aligned(numpages * hugepagesize);
+    float* x = (float *) malloc(size);
+    float* y = (float *) malloc(size);
 
     for (int i = 0; i < A.nrows; i++) {
 	x[i] = i % 7;
 	y[i] = 0; 
     }
-
-    /*
-    for (int i = (A.nrows- 200); i < A.nrows; i++) 
-	    printf("%d, %f, %f, %d\n", i, x[i], A.values[i], A.row_ptr[i]);
-	    */
 
     int t = 256;
     int b = (A.nrows + t - 1) / t;
