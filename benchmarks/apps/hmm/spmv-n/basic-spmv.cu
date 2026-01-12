@@ -51,7 +51,7 @@ void read_mtx_to_csr(const char *filename, CSRMatrix *csr) {
     
     size_t size = ((M + 1) * sizeof(int));
 
-    csr->row_ptr = (int *) (size);
+    csr->row_ptr = (int *) malloc(size);
     memset(csr->row_ptr, 0, size);
 
     size = NNZ * sizeof(int);
