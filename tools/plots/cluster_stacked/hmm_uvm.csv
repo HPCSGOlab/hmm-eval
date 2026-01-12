@@ -1,0 +1,17 @@
+benchmark,group,phase,value
+SGEMM,Native HMM,HMM setup,254424802
+SGEMM,UVM,UVM alloc,72940088
+SGEMM,Native HMM,UVM alloc,154653193
+SGEMM,Native HMM,HMM pages,13090289
+SGEMM,UVM,UVM finalize/map,79388837
+SGEMM,Native HMM,UVM finalize/map,119966578
+SGEMM,Native HMM,HMM finalize,70609964
+
+SPMV,Native HMM,HMM setup,9204049
+SPMV,UVM,UVM alloc,2055959
+SPMV,Native HMM,UVM alloc,4776182
+SPMV,Native HMM,HMM pages,405058
+SPMV,UVM,UVM finalize/map,1808563
+SPMV,Native HMM,UVM finalize/map,3118928
+SPMV,Native HMM,HMM finalize,2376617
+
