@@ -27,6 +27,13 @@ def summarize_avg(times_by_letter):
             print(len(values))
     return avgs
 
+def summarize_letters(times_by_letter):
+    avgs = {}
+    for letter, values in times_by_letter.items():
+        if values:
+            avgs[letter] = sum(values)
+    return avgs
+
 if __name__ == "__main__":
     if len(sys.argv) < 2:
         print("Usage: python3 timings_by_letter.py <file_path>")
@@ -39,9 +46,9 @@ if __name__ == "__main__":
         print("No valid timing entries found in file.")
         sys.exit(1)
 
-    avgs = summarize_avg(times_by_letter)
+    avgs = summarize_letters(times_by_letter)
 
-    print("Average time per tag:")
+    print("Total time per tag:")
     for letter in sorted(avgs):
         print(f"  {letter}: {avgs[letter]:.2f}")
 
