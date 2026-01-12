@@ -15,3 +15,10 @@ SPMV,UVM,UVM finalize/map,1808563
 SPMV,Native HMM,UVM finalize/map,3118928
 SPMV,Native HMM,HMM finalize,2376617
 
+Stream,Native HMM,HMM setup,12421848
+Stream,UVM,UVM alloc,6144234
+Stream,Native HMM,UVM alloc,10646038
+Stream,Native HMM,HMM pages,885675
+Stream,UVM,UVM finalize/map,5121943
+Stream,Native HMM,UVM finalize/map,6970478
+Stream,Native HMM,HMM finalize,4068849
