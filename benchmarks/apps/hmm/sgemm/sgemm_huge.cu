@@ -53,6 +53,21 @@ void gpu_multiply(float *A, float *B, float *C, size_t N, size_t iterations) {
     cublasDestroy(handle);
 }
 
+void *allocate_aligned(size_t size) {
+	void *ptr;
+	int result = posix_memalign(&ptr, 2 * 1024 * 1024, size);
+	if (result != 0) {
+		fprintf(stderr, "posix_memalign failed %d\n", result);
+		exit(1);
+	}
+
+	if (madvise(ptr, size, MADV_HUGEPAGE) != 0) {
+		perror("madvise");
+	}
+
+	return ptr;
+}
+
 int main(int argc, char **argv) {
     size_t N = 0;
     size_t iterations = 1;
@@ -83,9 +98,18 @@ int main(int argc, char **argv) {
 
     size_t size = sizeof(float) * N * N;
 
-    float *A = (float *)malloc(size);
-    float *B = (float *)malloc(size);
-    float *C = (float *)malloc(size);
+    size_t hugepagesize = 2097152;
+    int rem = size % hugepagesize;
+    int numpages = size / hugepagesize;
+
+    if (rem)
+	    numpages++;
+
+    printf("num hugepages %d\n", numpages * 3);
+
+    float *A = (float *)allocate_aligned(numpages * hugepagesize);
+    float *B = (float *)allocate_aligned(numpages * hugepagesize);
+    float *C = (float *)allocate_aligned(numpages * hugepagesize);
 
     for (size_t i = 0; i < N * N; ++i) {
         A[i] = i % 7;
