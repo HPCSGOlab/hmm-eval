@@ -3,7 +3,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 # Load data
-df = pd.read_csv("hmm_uvm.csv")
+df = pd.read_csv("benchmark_phases.csv")
 
 benchmarks = df["benchmark"].unique()
 groups = ["UVM", "Native HMM"]
@@ -89,6 +89,6 @@ ax.legend(handles[:len(phases)], phases, title="Phase", loc="center left", bbox_
 plt.tight_layout(rect=[0, 0, 0.82, 1])
 
 # Save as PDF (vector, paper-ready)
-plt.savefig("uvm_hmm_breakdown.pdf", format="pdf", bbox_inches="tight")
+plt.savefig("uvm_hmm_test.pdf", format="pdf", bbox_inches="tight")
 plt.show()
 
