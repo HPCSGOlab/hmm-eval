@@ -1,17 +1,25 @@
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+import matplotlib.patches as mpatches
+from itertools import chain
+
+plt.rcParams['hatch.linewidth'] = 0.4
 
 # Load data
-df = pd.read_csv("benchmark_phases.csv")
+df = pd.read_csv("future_work.csv")
 
 benchmarks = df["benchmark"].unique()
-groups = ["UVM", "Native HMM"]
+groups = ["UVM","Folio HMM", "Native HMM"]
+
+hatches = {"UVM": "x", "Native HMM": "\\", "Folio HMM": "o"}
+
 phases = [
     "HMM setup",
     "UVM alloc",
     "HMM pages",
-    "UVM finalize/map",
+    "UVM wait",
+    "UVM finalize/map (excluding wait)",
     "HMM finalize"
 ]
 
@@ -19,9 +27,29 @@ phase_colors = {
     "HMM setup": "tab:blue",
     "UVM alloc": "tab:orange",
     "HMM pages": "tab:green",
-    "UVM finalize/map": "tab:red",
+    "UVM wait": "tab:brown",
+    "UVM finalize/map (excluding wait)": "tab:red",
     "HMM finalize": "tab:purple"
 }
+
+group_handles = [
+    mpatches.Patch(
+        facecolor="white",          # or any neutral color
+        edgecolor="black",
+        hatch=hatches[g],
+        label=g
+    )
+    for g in groups
+]
+
+phase_handles = [
+    
+    mpatches.Patch(facecolor=phase_colors[p], edgecolor="black", label=p.replace(
+        "UVM finalize/map (excluding wait)",
+        "UVM finalize/map\n(excluding wait)"
+    ))
+    for p in phases
+]
 
 totals = {}
 for b in benchmarks:
@@ -32,11 +60,14 @@ for b in benchmarks:
         ]["value"].sum()
         totals[(b, g)] = total
 
+print(totals)
+
 max_total = {}
 for b in benchmarks:
     max_total[b] = max(
-        totals[(b, "UVM")],
-        totals[(b, "Native HMM")]
+        totals[(b, "Folio HMM")],
+        totals[(b, "Native HMM")],
+        totals[(b, "UVM")]
     )
 
 x = np.arange(len(benchmarks))
@@ -60,6 +91,7 @@ for i, group in enumerate(groups):
             denom = max_total[b]
             values.append(raw / denom if total > 0 else 0)
 
+        print(values)
 
         values = np.array(values)
 
@@ -70,8 +102,9 @@ for i, group in enumerate(groups):
             bottom=bottoms,
             color=phase_colors[phase],
             edgecolor="black",
-            linewidth=0.5,
-            label=phase if i == 0 else ""
+            linewidth=0.8,
+            label=phase if i == 0 else "",
+            hatch=hatches[group]
         )
 
         bottoms += values
@@ -80,11 +113,24 @@ for i, group in enumerate(groups):
 ax.set_xticks(x + bar_width / 2)
 ax.set_xticklabels(benchmarks)
 ax.set_ylabel("Time Relative to Slowest Case (%)")
-ax.set_title("UVM vs Native HMM Breakdown")
+ax.set_title("Folio HMM vs Native HMM Breakdown")
 
 # Legend (phases only)
+
+legend_phases = [
+    p.replace(
+        "UVM finalize/map (excluding wait)",
+        "UVM finalize/map\n(excluding wait)"
+    )
+    for p in phases
+]
+
 handles, labels = ax.get_legend_handles_labels()
-ax.legend(handles[:len(phases)], phases, title="Phase", loc="center left", bbox_to_anchor=(1.02, 0.5), borderaxespad=0.0)
+#ax.legend(handles[:len(phases)], legend_phases, title="Phase", loc="center left", bbox_to_anchor=(1.02, 0.5), borderaxespad=0.0)
+#ax.legend(handles=group_handles, title="Group", loc="upper right")
+ax.legend(handles=list(chain(phase_handles, group_handles)),
+          loc="center left", bbox_to_anchor=(1.02, 0.5),
+          title="Phase / Group", handlelength=2.5, handleheight=2.0, handletextpad=0.5, borderaxespad=0.0)
 
 plt.tight_layout(rect=[0, 0, 0.82, 1])
 
