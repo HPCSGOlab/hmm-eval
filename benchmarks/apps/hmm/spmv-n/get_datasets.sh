@@ -14,19 +14,13 @@ for N in "${datasets[@]}"; do
 
 done
 
-wget https://suitesparse-collection-website.herokuapp.com/MM/Janna/Cube_Coup_dt6.tar.gz
+#            818MB           1.7 GB     4.8GB
+datasets=("Cube_Coup_dt6" "Geo_1438" "Queen_4147")
 
-tar xvf Cube_Coup_dt6.tar.gz
-rm Cube_Coup_dt6.tar.gz
-mv Cube_Coup_dt6/*.mtx data/
+for N in "${datasets[@]}"; do
+	wget https://suitesparse-collection-website.herokuapp.com/MM/Janna/$N.tar.gz
 
-rmdir Cube_Coup_dt6
-
-wget https://suitesparse-collection-website.herokuapp.com/MM/GAP/GAP-twitter.tar.gz
-
-tar xvf GAP-twitter.tar.gz
-rm GAP-twitter.tar.gz
-mv GAP-twitter/*.mtx data/
-rm data/GAP-twitter_sources.mtx
-
-rmdir GAP-twitter
+	tar xvf $N.tar.gz
+	rm $N.tar.gz
+	mv $N/* data/
+	rmdir $N 
