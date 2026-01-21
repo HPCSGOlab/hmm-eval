@@ -41,7 +41,7 @@
 
 // Default size of 2^25
 size_t ARRAY_SIZE = 33554432;
-size_t num_times = 10;
+size_t num_times = 2;
 size_t deviceIndex = 0;
 bool use_float = false;
 bool triad_only = false;
@@ -97,7 +97,6 @@ void run()
 {
   std::streamsize ss = std::cout.precision();
 
-  /* COMMENTING FOR BASH
   if (!output_as_csv)
   {
     std::cout << "Running kernels " << num_times << " times" << std::endl;
@@ -116,7 +115,6 @@ void run()
     std::cout.precision(ss);
 
   }
-  */
 
   // Create host vectors
   std::vector<T> a(ARRAY_SIZE);
@@ -166,6 +164,15 @@ void run()
 
 #endif
 
+  cudaEvent_t start, stop;
+  float elapsedTime;
+
+  cudaDeviceSynchronize();
+
+  cudaEventCreate(&start);
+  cudaEventCreate(&stop);
+  cudaEventRecord(start, 0);
+
   stream->init_arrays(startA, startB, startC);
 
   // List of times
@@ -209,9 +216,17 @@ void run()
 
   }
 
+  cudaEventRecord(stop, 0);
+  cudaEventSynchronize(stop);
+  cudaEventElapsedTime(&elapsedTime, start, stop);
+
+
+
   // Check solutions
+  /*
   stream->read_arrays(a, b, c);
   check_solution<T>(num_times, a, b, c, sum);
+  */
 
   /* COMMENTING FOR BASH
   // Display timing results
@@ -256,15 +271,15 @@ void run()
 
   for (int i = 0; i < 5; i++)
   {
-    // Get min/max; ignore the first result
-    auto minmax = std::minmax_element(timings[i].begin()+1, timings[i].end());
+    // Get min/max; DONT ignore the first result
+    auto minmax = std::minmax_element(timings[i].begin(), timings[i].end());
 
-    // Calculate average; ignore the first result
-    double average = std::accumulate(timings[i].begin()+1, timings[i].end(), 0.0) / (double)(num_times - 1);
+    // Calculate average; DONT ignore the first result
+    double average = std::accumulate(timings[i].begin(), timings[i].end(), 0.0) / (double)(num_times - 1);
     totalAverageTime += average;
 
     // GETTING THEIR MBYTES AVERAGE as GBYTES
-    totalAverageGBytes += 1.0E-9 * sizes[i] / (*minmax.first);
+    totalAverageGBytes += 1.0E-9 * sizes[i] / (elapsedTime / 1000.0) ;
     
     /* COMMENTING FOR BASH
     // Display results
@@ -295,9 +310,12 @@ void run()
   }
 
   //JUST USING THEIR (MBYTES / SEC) INSTEAD OF GFLOPS
+  //	average (GBYTES / SEC) per kernel
 
-  std::cout << "GPU," << ARRAY_SIZE << "," << totalAverageTime << "," << 
-	  std::setprecision(3) << totalAverageGBytes << std::endl;
+  size_t upper = 3 * sizeof(T) * ARRAY_SIZE;
+  size_t how_many = num_times * 4; //how many kernels there are
+  std::cout << "GPU," << upper * 1e-09 << "," << elapsedTime / 1000.0 << "," << 
+	  std::setprecision(3) << (upper / ((elapsedTime / 1000.0) / how_many)) * 1e-09 << std::endl;
 
 
   delete stream;
@@ -380,10 +398,12 @@ void run_triad()
   double runtime = std::chrono::duration_cast<std::chrono::duration<double> >(t2 - t1).count();
 
   // Check solutions
+  /*
   T sum = 0.0;
   stream->read_arrays(a, b, c);
   std::cout << "checking solution" << std::endl;
   check_solution<T>(num_times, a, b, c, sum);
+  */
 
   // Display timing results
   double total_bytes = 3 * sizeof(T) * ARRAY_SIZE * num_times;

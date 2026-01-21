@@ -94,10 +94,12 @@ CUDAStream<T>::CUDAStream(const unsigned int ARRAY_SIZE, const int device_index)
 template <class T>
 CUDAStream<T>::~CUDAStream()
 {
+	/*
   free(sums);
     free(d_a);
     free(d_b);
     free(d_c);
+    */
   //cudaFree(d_a);
   //check_error();
   //cudaFree(d_b);
