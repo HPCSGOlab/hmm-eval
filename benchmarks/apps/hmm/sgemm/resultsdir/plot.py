@@ -2,7 +2,7 @@ import glob
 import matplotlib.pyplot as plt
 
 
-MODES = ["native", "tlb", "overlap"]
+MODES = ["base",  "uvm", "native"]
 
 
 def parse_gflops_file(filename):
@@ -24,7 +24,9 @@ def parse_gflops_file(filename):
                     continue
 
                 if problem_size is None:
-                    problem_size = int(parts[1])
+                    # N * N * sizeof(float) * 3
+                    problem_size = int(parts[1]) * int(parts[1]) * 4 * 3
+                    problem_size = problem_size / (1000 * 1000 * 1000)
 
                 gflops.append(float(parts[-1]))
 
@@ -37,6 +39,18 @@ def parse_gflops_file(filename):
 
 def main():
     plt.figure()
+
+    MARKERS = {
+    "base": "o",
+    "uvm": "s",
+    "native": "^",
+    }
+
+    COLORS = {
+    "uvm": "tab:blue",
+    "base": "tab:green",
+    "native": "tab:orange",   # “whatever” / HMM
+    }
 
     for mode in MODES:
         files = glob.glob(f"*{mode}.txt")
@@ -55,16 +69,18 @@ def main():
 
         # Sort by problem size
         sizes, avgs = zip(*sorted(zip(sizes, avgs)))
+        print(sizes)
+        print(avgs)
 
         if mode == "overlap":
             print("here")
             mode = "overlap \n+ tlb" 
 
-        plt.plot(sizes, avgs, marker='o', label=mode)
+        plt.plot(sizes, avgs, marker=MARKERS.get(mode, 'o'), color=COLORS.get(mode, None), label=mode)
 
-    plt.xlabel("Problem Size")
+    plt.xlabel("Problem Size in GBs")
     plt.ylabel("Average GFLOPS")
-    plt.title("SGEMM Average GFLOPS Across Optimizations")
+    plt.ylim(bottom=0)
     plt.legend()
     plt.grid(True)
     plt.tight_layout()
